@@ -82,6 +82,8 @@ Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrét
    - potom podľa **slov v dodávateľovi a popise** (napr. „nafta“, „Shell“, „mýto“, „leasing“, „poisťovňa“, „oprava“),
    - k **vozidlu** podľa ŠPZ v popise (ŠPZ daj do názvu vozidla, napr. „Ťahač ZA123AB“).
 
+   **PDF faktúry:** vyber jedno alebo viac PDF. Appka z nich prečíta text a nájde dodávateľa, číslo faktúry, dátum dodania, sumu bez DPH, celkovú sumu, položky a ŠPZ. Faktúru zaradí ako pri ostatných faktúrach a ukáže ju na **kontrolu pred uložením**. Ak suma bez DPH na faktúre nie je, dopočíta ju z celkovej sumy ÷ 1,23 a upozorní na to. Na otvorenie PDF treba internet (čítačka pdf.js sa načíta pri prvom PDF). Na odkaze claude.ai je navyše tlačidlo **Prečítať pomocou Claude** pre neprehľadné alebo naskenované faktúry. Na skúšku je v repozitári `kilometrovnik/ukazkova-faktura.pdf`.
+
    Potom porovná **skutočné náklady s plánom** z nastavení vozidla po skupinách a mesiacoch a ukáže, kde míňaš viac, než si počítal. Zo súboru berie sumu **bez DPH** (stĺpec „Základ“ / „bez DPH“, ak existuje).
 
 ### Power BI (`kilometrovnik/powerbi/`)

@@ -240,6 +240,16 @@ textarea.copybox { width: 100%; min-height: 140px; font: 12px/1.4 var(--f-num); 
 .tag.auto { background: var(--accent-soft); color: var(--accent); }
 .tag.none { background: var(--bad-soft); color: var(--bad); }
 table.list select { padding: 5px 6px; font-size: 13px; width: auto; max-width: 190px; }
+.pdfcard { border: 1px solid var(--accent); border-radius: 8px; padding: 14px; display: grid; gap: 10px; background: var(--surface); }
+.pdfcard .head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; justify-content: space-between; }
+.pdfcard .fname { font: 600 14px/1.3 var(--f-num); overflow-wrap: anywhere; }
+.pdfcard .grid5 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 12px; }
+.pdfcard .grid5 .wide { grid-column: span 2; }
+@media (max-width: 560px) { .pdfcard .grid5 .wide { grid-column: auto; } }
+.pdfcard ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); display: grid; gap: 2px; }
+.pdfcard ul li.warn { color: var(--warn); }
+.pdfcard details summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+.pdfcard pre { max-height: 220px; overflow: auto; font: 12px/1.4 var(--f-num); background: var(--surface-2); padding: 8px; border-radius: 6px; white-space: pre-wrap; }
 details.rules { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
 details.rules summary { cursor: pointer; font-weight: 600; }
 details.rules ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
@@ -1280,7 +1290,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   ];
   const CAT_LABEL = Object.fromEntries(CATS);
   const PLAN_CATS = ['nafta', 'adblue', 'pneu', 'servis', 'leasing', 'poistenie', 'mzdy', 'diety', 'dane', 'rezia', 'ine'];
-  const HOW_LABEL = { pravidlo: 'automaticky', dodavatel: 'podľa dodávateľa', rucne: 'ručne', nezaradene: 'nezaradené' };
+  const HOW_LABEL = { pravidlo: 'automaticky', dodavatel: 'podľa dodávateľa', claude: 'Claude', rucne: 'ručne', nezaradene: 'nezaradené' };
   // Poradie je dôležité: prvá zhoda vyhráva (AdBlue a mýto pred naftou, mzdy pred poistením, pneu pred servisom).
   const KEYWORDS = [
     ['adblue', ['adblue', 'ad blue', 'mocovin']],
@@ -1421,6 +1431,295 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     } catch (e) { toast('Súbor sa nepodarilo prečítať. Skús ho uložiť ako CSV.'); }
   }
 
+  // --- PDF faktúry ---
+  // pdf.js sa načíta až pri prvom PDF. Worker beží v hlavnom vlákne (pdfjsWorker), takže netreba samostatný súbor workera.
+  let pdfLib;
+  function loadPdfJs() {
+    if (pdfLib) return pdfLib;
+    const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+    const add = (src) => new Promise((res, rej) => { const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = () => rej(new Error('load')); document.head.appendChild(el); });
+    pdfLib = (window.pdfjsLib ? Promise.resolve() : add(base + 'pdf.min.js'))
+      .then(() => (window.pdfjsWorker ? null : add(base + 'pdf.worker.min.js')))
+      .then(() => window.pdfjsLib)
+      .catch((e) => { pdfLib = null; throw e; });
+    return pdfLib;
+  }
+  async function pdfToText(file) {
+    const lib = await loadPdfJs();
+    const doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+    const lines = [];
+    for (let n = 1; n <= Math.min(doc.numPages, 5); n++) {
+      const page = await doc.getPage(n);
+      const tc = await page.getTextContent();
+      const rows = [];
+      tc.items.forEach(it => {
+        if (!it.str || !it.str.trim()) return;
+        const x = it.transform[4], y = it.transform[5];
+        let r = rows.find(r => Math.abs(r.y - y) < 3);
+        if (!r) { r = { y, items: [] }; rows.push(r); }
+        r.items.push({ x, w: it.width || 0, s: it.str });
+      });
+      rows.sort((a, b) => b.y - a.y).forEach(r => {
+        r.items.sort((a, b) => a.x - b.x);
+        let line = '', end = null;
+        r.items.forEach(it => {
+          if (end != null) { const gap = it.x - end; line += gap > 28 ? ' | ' : gap > 1.5 ? ' ' : ''; }
+          line += it.s; end = it.x + it.w;
+        });
+        lines.push(line.replace(/\s+/g, ' ').trim());
+      });
+      if (n === 1) doc._firstPage = page; // prvá strana sa použije ako obrázok pri naskenovanom PDF
+    }
+    return { lines, doc };
+  }
+  async function pdfPageImage(doc) {
+    const page = doc._firstPage || await doc.getPage(1);
+    const vp = page.getViewport({ scale: 1.6 });
+    const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    return new Promise(res => c.toBlob(res, 'image/png'));
+  }
+
+  const AMT_RE = /-?\d{1,3}(?:[  .]\d{3})*,\d{2}(?!\d)|-?\d+[.,]\d{2}(?!\d)/g;
+  const DATE_RE = /(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{4})/;
+  function parseInvoiceText(lines) {
+    const N = lines.map(norm);
+    const notes = [];
+    const after = (i, re) => { const m = N[i].match(re); return m ? lines[i].slice(m.index + m[0].length) : lines[i]; };
+    const firstSeg = (t) => String(t || '').split(' | ').map(x => x.replace(/^[:\s]+/, '').trim()).find(x => x.length > 1) || '';
+    // dodávateľ
+    let dodavatel = '';
+    const di = N.findIndex(l => /^(dodavatel|predavajuci|dodavatel\s*\/|vystavil)/.test(l) || /\bdodavatel\s*:/.test(l));
+    if (di > -1) {
+      const rest = firstSeg(after(di, /dodavatel|predavajuci|vystavil/).split(/odberate[lľ]|kupuj[uú]ci|príjemca|prijemca/i)[0]);
+      dodavatel = rest && !/^(ico|dic|adresa)/.test(norm(rest)) ? rest : '';
+      for (let k = di + 1; !dodavatel && k < Math.min(di + 4, lines.length); k++) { const seg = firstSeg(lines[k]); if (seg && !/^(ico|dic|ic dph|odberatel)/.test(norm(seg))) dodavatel = seg; }
+    }
+    if (!dodavatel) {
+      const ci = lines.findIndex(l => /\b(s\.\s?r\.\s?o\.|a\.\s?s\.|spol\.|k\.\s?s\.|gmbh|s\.r\.o)/i.test(l));
+      if (ci > -1) { dodavatel = firstSeg(lines[ci]); notes.push('Dodávateľa som odhadol podľa prvej firmy v texte.'); }
+    }
+    // číslo faktúry
+    let cislo = '';
+    for (let i = 0; i < N.length && !cislo; i++) {
+      const m = N[i].match(/(?:faktur[a-z]*|doklad[a-z]*)[^0-9]{0,30}?(?:\bc\.|cislo|\bc\b)\s*:?\s*([a-z0-9][a-z0-9\/\-]*\d[a-z0-9\/\-]*)/);
+      if (m) cislo = m[1].toUpperCase();
+    }
+    // dátum
+    let datum = '';
+    const dateLabels = [/datum dodania|zdanitel/, /datum vyhotovenia|datum vystavenia|vystavena|vyhotovena/, /datum/];
+    for (const re of dateLabels) {
+      for (let i = 0; i < N.length && !datum; i++) {
+        if (!re.test(N[i]) || /splatnost/.test(N[i].slice(0, N[i].search(re) + 12))) continue;
+        const m = after(i, re).match(DATE_RE) || (lines[i + 1] || '').match(DATE_RE);
+        if (m) datum = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+      }
+      if (datum) break;
+    }
+    if (!datum) { const m = lines.join(' ').match(DATE_RE); if (m) { datum = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; notes.push('Dátum je prvý dátum v texte, skontroluj ho.'); } }
+    // sumy
+    const amountsIn = (t) => (String(t).match(AMT_RE) || []).map(parseAmount).filter(isFinite);
+    const findAmt = (res, pick) => {
+      for (const re of res) for (let i = 0; i < N.length; i++) {
+        if (!re.test(N[i])) continue;
+        let a = amountsIn(after(i, re));
+        if (!a.length) a = amountsIn(lines[i + 1] || '');
+        if (a.length) return pick === 'last' ? a[a.length - 1] : a[0];
+      }
+      return null;
+    };
+    let bez = findAmt([/(spolu|celkom|suma|cena) bez dph/, /zaklad (dane|dph)( spolu| celkom)?/, /bez dph/]);
+    const spolu = findAmt([/(celkom|spolu|suma) k uhrade/, /k uhrade/, /na uhradu/, /celkom s dph|spolu s dph/, /^(celkom|spolu)\b/], 'last');
+    let bezOdhad = false;
+    if (bez == null && spolu != null) { bez = Math.round(spolu / 1.23 * 100) / 100; bezOdhad = true; notes.push('Sumu bez DPH som nenašiel, vypočítal som ju z celkovej sumy ÷ 1,23. Skontroluj ju.'); }
+    if (bez != null && spolu != null && bez > spolu + 0.01) notes.push('Suma bez DPH je vyššia ako celková suma. Skontroluj ju.');
+    // popis = prvé položky z tabuľky
+    let popis = '';
+    const hi = N.findIndex(l => /(popis|nazov polozky|oznacenie dodavky|predmet|polozka|nazov)\b/.test(l) && !/dodavatel|odberatel/.test(l));
+    if (hi > -1) {
+      const items = [];
+      for (let k = hi + 1; k < Math.min(hi + 8, lines.length) && items.length < 2; k++) {
+        if (/spolu|celkom|zaklad|rekapitul|dph/.test(N[k])) break;
+        const seg = firstSeg(lines[k]);
+        if (seg && /[a-zA-Zá-žÁ-Ž]{3}/.test(seg) && !/^\d+([.,]\d+)?$/.test(seg)) items.push(seg.replace(AMT_RE, '').trim());
+      }
+      popis = items.filter(Boolean).join('; ');
+    }
+    if (!popis) popis = cislo ? 'Faktúra ' + cislo : '';
+    if (!dodavatel) notes.push('Dodávateľa som nenašiel, doplň ho.');
+    if (!datum) notes.push('Dátum som nenašiel, doplň ho.');
+    if (bez == null) notes.push('Sumu som nenašiel, doplň ju.');
+    return { dodavatel, cislo, datum, popis, bez, spolu, bezOdhad, notes };
+  }
+
+  let pdfPending = [];
+  const FALLBACK_SKIP = new Set(['ine', 'rezia']);
+  function suggestFromText(dod, popis, fullText) {
+    const a = categorize(dod, popis);
+    if (a.kategoria !== 'nezaradene') return a;
+    const text = ' ' + norm(fullText).slice(0, 4000) + ' ';
+    for (const [cat, words] of KEYWORDS) {
+      if (FALLBACK_SKIP.has(cat)) continue;
+      const w = words.find(k => text.includes(k));
+      if (w) return { kategoria: cat, sposob: 'pravidlo', kw: w.trim() };
+    }
+    return a;
+  }
+  async function importPdfs(files) {
+    toast(files.length === 1 ? 'Čítam PDF…' : `Čítam ${files.length} PDF…`);
+    for (const file of files) {
+      const card = { id: uid(), file: file.name, status: 'ok', notes: [], text: '', doc: null };
+      try {
+        const { lines, doc } = await pdfToText(file);
+        card.doc = doc; card.text = lines.join('\n');
+        if (card.text.replace(/\s/g, '').length < 40) {
+          card.status = 'scan';
+          Object.assign(card, { dodavatel: '', datum: '', popis: '', suma: '', spolu: null, kategoria: 'nezaradene', autoKat: 'nezaradene', how: 'nezaradene', kw: '', vozidloId: '' });
+          card.notes.push('PDF je naskenovaný obrázok bez textu. Údaje vyplň ručne' + (await claudeAvailable() ? ' alebo ich nechaj prečítať Claude.' : '.'));
+        } else {
+          const r = parseInvoiceText(lines);
+          const sug = suggestFromText(r.dodavatel, r.popis, card.text);
+          Object.assign(card, {
+            dodavatel: r.dodavatel, datum: r.datum, popis: r.popis, cislo: r.cislo, suma: r.bez != null ? String(r.bez).replace('.', ',') : '', spolu: r.spolu,
+            kategoria: sug.kategoria, autoKat: sug.kategoria, how: sug.sposob, kw: sug.kw, vozidloId: vehicleFor(r.dodavatel, card.text), notes: r.notes,
+          });
+        }
+      } catch (e) {
+        card.status = 'error';
+        Object.assign(card, { dodavatel: '', datum: '', popis: '', suma: '', kategoria: 'nezaradene', autoKat: 'nezaradene', how: 'nezaradene', kw: '', vozidloId: '' });
+        card.notes.push(pdfLib === null ? 'Čítačku PDF sa nepodarilo načítať. Je potrebný internet.' : 'Toto PDF sa nepodarilo prečítať. Údaje vyplň ručne.');
+      }
+      pdfPending.push(card);
+    }
+    renderPdfReview();
+    const el = $('#pdfReview'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  let sampleCap;
+  function claudeAvailable() {
+    if (sampleCap !== undefined) return Promise.resolve(!!sampleCap);
+    if (!(window.claude && typeof window.claude.use === 'function')) { sampleCap = null; return Promise.resolve(false); }
+    return window.claude.use('sample').then(sm => { sampleCap = sm; return !!sm; }, () => { sampleCap = null; return false; });
+  }
+  async function readWithClaude(card, btn) {
+    if (!(await claudeAvailable())) return;
+    btn.disabled = true; btn.textContent = 'Claude číta faktúru…';
+    const cats = CATS.filter(([k]) => k !== 'nezaradene').map(([k, l]) => `${k} = ${l}`).join(', ');
+    const opts = {};
+    let source = '';
+    if (card.text.replace(/\s/g, '').length >= 40) source = 'Text faktúry vytiahnutý z PDF (stĺpce sú oddelené znakom |):\n\n' + card.text.slice(0, 12000);
+    else {
+      const lim = await sampleCap.limits().catch(() => null);
+      if (!lim || !lim.images || !card.doc) { btn.textContent = 'Naskenované PDF tu Claude prečítať nevie'; return; }
+      opts.images = [await pdfPageImage(card.doc)];
+      source = 'Priložený obrázok je prvá strana naskenovanej faktúry.';
+    }
+    const prompt = `Si účtovník slovenskej dopravnej firmy. Z prijatej (nákladovej) faktúry vytiahni údaje.
+${source}
+
+Vráť iba JSON objekt s poľami:
+{"dodavatel": "obchodné meno DODÁVATEĽA (nie odberateľa)", "cislo": "číslo faktúry", "datum": "RRRR-MM-DD (dátum dodania, inak vystavenia)",
+ "popis": "krátko, čo sa kupovalo (max 80 znakov), vrátane ŠPZ ak je uvedená", "suma_bez_dph": číslo, "suma_s_dph": číslo,
+ "kategoria": "jeden kód z: ${cats}"}
+Sumy ako čísla s desatinnou bodkou. Ak údaj nevieš, daj null.`;
+    try {
+      const r = await sampleCap.json(prompt, opts);
+      if (!r || typeof r !== 'object') throw { code: 'invalid_json' };
+      if (typeof r.dodavatel === 'string' && r.dodavatel.trim()) card.dodavatel = r.dodavatel.trim().slice(0, 120);
+      if (typeof r.datum === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.datum)) card.datum = r.datum;
+      if (typeof r.popis === 'string' && r.popis.trim()) card.popis = r.popis.trim().slice(0, 140);
+      if (typeof r.cislo === 'string') card.cislo = r.cislo.slice(0, 40);
+      if (isFinite(+r.suma_bez_dph) && +r.suma_bez_dph) card.suma = String(+r.suma_bez_dph).replace('.', ',');
+      if (isFinite(+r.suma_s_dph) && +r.suma_s_dph) card.spolu = +r.suma_s_dph;
+      const auto = categorize(card.dodavatel, card.popis);
+      if (auto.kategoria !== 'nezaradene') { card.kategoria = auto.kategoria; card.how = auto.sposob; card.kw = auto.kw; }
+      else if (typeof r.kategoria === 'string' && CAT_LABEL[r.kategoria] && r.kategoria !== 'nezaradene') { card.kategoria = r.kategoria; card.how = 'claude'; card.kw = ''; }
+      card.autoKat = card.kategoria;
+      card.vozidloId = card.vozidloId || vehicleFor(card.dodavatel, card.popis + ' ' + card.text);
+      card.notes = ['Údaje prečítal Claude. Pred uložením ich skontroluj.'];
+      card.status = 'ok';
+    } catch (e) {
+      card.notes.push(e && e.code === 'rate_limited' ? 'Claude je teraz vyťažený, skús to o chvíľu.' : e && e.code === 'not_granted' ? 'Čítanie pomocou Claude nie je povolené.' : 'Claude faktúru neprečítal. Údaje vyplň ručne.');
+    }
+    renderPdfReview();
+  }
+
+  function renderPdfReview() {
+    const box = $('#pdfReview'); if (!box) return;
+    if (!pdfPending.length) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="section-title" style="margin:16px 0 0"><h3>Kontrola PDF faktúr (${pdfPending.length})</h3><span>skontroluj a ulož</span></div>
+      ${pdfPending.map(c => {
+        const dup = c.datum && c.dodavatel && isFinite(parseAmount(c.suma)) && state.invoices.some(i => i.datum === c.datum && norm(i.dodavatel) === norm(c.dodavatel) && Math.abs(i.suma - Math.abs(parseAmount(c.suma))) < 0.01);
+        return `<div class="pdfcard" data-card="${c.id}">
+          <div class="head"><span class="fname">${esc(c.file)}${c.cislo ? ` · faktúra ${esc(c.cislo)}` : ''}</span>
+            <span class="tag ${c.how === 'nezaradene' ? 'none' : c.how === 'rucne' ? '' : 'auto'}">${c.how === 'nezaradene' ? 'nezaradené' : 'navrhnuté: ' + esc(CAT_LABEL[c.kategoria]) + (c.how === 'dodavatel' ? ' (dodávateľ)' : c.how === 'claude' ? ' (Claude)' : c.kw ? ' („' + esc(c.kw) + '“)' : '')}</span></div>
+          <div class="grid5">
+            <div class="wide"><label class="lbl" for="pd-dod-${c.id}">Dodávateľ</label><input type="text" id="pd-dod-${c.id}" data-f="dodavatel" value="${esc(c.dodavatel || '')}"></div>
+            <div><label class="lbl" for="pd-dat-${c.id}">Dátum</label><input type="date" id="pd-dat-${c.id}" data-f="datum" value="${esc(c.datum || '')}"></div>
+            <div><label class="lbl" for="pd-sum-${c.id}">Suma bez DPH (€)</label><input type="text" inputmode="decimal" class="n" id="pd-sum-${c.id}" data-f="suma" value="${esc(c.suma || '')}"></div>
+            <div class="wide"><label class="lbl" for="pd-pop-${c.id}">Popis</label><input type="text" id="pd-pop-${c.id}" data-f="popis" value="${esc(c.popis || '')}"></div>
+            <div><label class="lbl" for="pd-kat-${c.id}">Skupina nákladov</label><select id="pd-kat-${c.id}" data-f="kategoria">${catOptions(c.kategoria)}</select></div>
+            <div><label class="lbl" for="pd-veh-${c.id}">Vozidlo</label><select id="pd-veh-${c.id}" data-f="vozidloId">${vehOptionsInv(c.vozidloId)}</select></div>
+          </div>
+          ${c.notes.length || c.spolu != null || dup ? `<ul>
+            ${c.spolu != null ? `<li>Celkom s DPH podľa faktúry: <b class="num">${eur(c.spolu, 2)}</b></li>` : ''}
+            ${dup ? '<li class="warn">Faktúra s rovnakým dátumom, dodávateľom a sumou už v zozname je.</li>' : ''}
+            ${c.notes.map(n => `<li class="warn">${esc(n)}</li>`).join('')}
+          </ul>` : ''}
+          <div class="toolbar" style="margin:0">
+            <button class="btn primary small" data-pdfsave="${c.id}">Uložiť faktúru</button>
+            <button class="btn small" data-pdfai="${c.id}" hidden>Prečítať pomocou Claude</button>
+            <button class="btn small" data-pdfdrop="${c.id}">Zahodiť</button>
+          </div>
+          ${c.text ? `<details><summary>Text prečítaný z PDF</summary><pre>${esc(c.text)}</pre></details>` : ''}
+        </div>`;
+      }).join('')}
+      ${pdfPending.length > 1 ? '<div class="toolbar" style="margin:0"><button class="btn primary" id="pdfSaveAll">Uložiť všetky</button></div>' : ''}`;
+
+    box.querySelectorAll('[data-card]').forEach(el => {
+      const c = pdfPending.find(x => x.id === el.dataset.card);
+      el.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => {
+        c[inp.dataset.f] = inp.value;
+        if (inp.dataset.f === 'dodavatel' && c.how !== 'rucne') {
+          const a = suggestFromText(c.dodavatel, c.popis, c.text);
+          c.kategoria = a.kategoria; c.autoKat = a.kategoria; c.how = a.sposob; c.kw = a.kw;
+          el.querySelector('[data-f="kategoria"]').value = c.kategoria;
+        }
+        if (inp.dataset.f === 'kategoria') c.how = c.kategoria === c.autoKat ? c.how : 'rucne';
+      }));
+    });
+    const saveCard = (c) => {
+      const suma = parseAmount(c.suma);
+      if (!c.datum || !isFinite(suma) || !suma || !(c.dodavatel || c.popis)) return false;
+      const manual = c.how === 'rucne' && c.kategoria !== c.autoKat;
+      const inv = makeInvoice(c.datum, c.dodavatel, c.popis, suma, manual ? c.kategoria : null, c.vozidloId);
+      if (!manual && inv.kategoria !== c.kategoria) { inv.kategoria = c.kategoria; inv.sposob = c.how === 'claude' ? 'claude' : c.how; inv.kw = c.kw; }
+      if (manual && c.dodavatel.trim() && c.kategoria !== 'nezaradene') state.supplierRules[norm(c.dodavatel)] = c.kategoria;
+      inv.subor = c.file; if (c.cislo) inv.cislo = c.cislo;
+      state.invoices.push(inv);
+      pdfPending = pdfPending.filter(x => x !== c);
+      return true;
+    };
+    const done = () => { save(); updateInvCount(); renderInvoices(true); };
+    box.querySelectorAll('[data-pdfsave]').forEach(b => b.addEventListener('click', () => {
+      const c = pdfPending.find(x => x.id === b.dataset.pdfsave);
+      if (saveCard(c)) { done(); toast(`Uložené do skupiny ${CAT_LABEL[c.kategoria]}`); } else toast('Doplň dátum, sumu a dodávateľa');
+    }));
+    box.querySelectorAll('[data-pdfdrop]').forEach(b => b.addEventListener('click', () => { pdfPending = pdfPending.filter(x => x.id !== b.dataset.pdfdrop); renderPdfReview(); }));
+    const all = $('#pdfSaveAll');
+    if (all) all.addEventListener('click', () => {
+      let ok = 0; [...pdfPending].forEach(c => { if (saveCard(c)) ok++; });
+      done(); toast(`Uložených ${ok} faktúr${pdfPending.length ? `, ${pdfPending.length} treba doplniť` : ''}`);
+    });
+    claudeAvailable().then(ok => {
+      if (!ok) return;
+      box.querySelectorAll('[data-pdfai]').forEach(b => {
+        b.hidden = false;
+        b.addEventListener('click', () => readWithClaude(pdfPending.find(x => x.id === b.dataset.pdfai), b));
+      });
+    });
+  }
+
   // --- ukážka ---
   function loadSampleInvoices() {
     const v = state.vehicles[0]; const t = today(); const ym = (back) => { const d = new Date(t + 'T12:00:00'); d.setDate(1); d.setMonth(d.getMonth() - back); return d.toISOString().slice(0, 7); };
@@ -1467,6 +1766,11 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
           <input type="file" id="invFile" accept=".csv,.txt,.xlsx,.xls,.ods" style="font-size:14px;max-width:100%">
         </div>
         <div class="addbox">
+          <h4>PDF faktúry</h4>
+          <p class="hint" style="margin:0">Vyber jednu alebo viac PDF faktúr. Appka nájde dodávateľa, dátum, sumu bez DPH a ŠPZ, zaradí ich a pred uložením ti ich ukáže na kontrolu.</p>
+          <input type="file" id="invPdf" accept=".pdf,application/pdf" multiple style="font-size:14px;max-width:100%">
+        </div>
+        <div class="addbox">
           <h4>Vložiť z Excelu</h4>
           <label class="lbl" for="invPaste" style="margin:0">Označ riadky v Exceli (aj s hlavičkou), skopíruj a vlož sem</label>
           <textarea id="invPaste" placeholder="Dátum	Dodávateľ	Popis	Suma bez DPH"></textarea>
@@ -1486,10 +1790,13 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
           <div><button class="btn primary small" id="invAddBtn">Pridať faktúru</button></div>
         </div>
       </div>
+      <div id="pdfReview" class="stack" style="gap:12px"></div>
       <p class="hint" style="margin:6px 0 0">Ak dáš do názvu vozidla ŠPZ (napr. <span class="num">Ťahač ZA123AB</span>), faktúry s touto ŠPZ v popise sa priradia k autu samé. Keď faktúru zaradíš ručne, appka si dodávateľa zapamätá a ďalšie jeho faktúry zaradí rovnako.</p>
       ${state.invoices.length ? '' : '<div class="toolbar" style="margin:12px 0 0"><button class="btn" id="invSample">Načítať ukážkové faktúry</button></div>'}`;
 
     $('#invFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importFile(f); e.target.value = ''; });
+    $('#invPdf').addEventListener('change', (e) => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) importPdfs(fs); });
+    renderPdfReview();
     $('#invPasteBtn').addEventListener('click', () => {
       const t = $('#invPaste').value; if (!t.trim()) { toast('Najprv vlož riadky z Excelu'); return; }
       const res = importRows(parseDelimited(t)); if (res.added) $('#invPaste').value = ''; afterImport(res);
