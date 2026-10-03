@@ -88,3 +88,48 @@ let
     )
 in
     Typy
+
+
+// ---------------------------------------------------------------------
+// NÁZOV DOTAZU: Faktury
+// Nákladové faktúry zo záložky 6 (už zaradené do skupín nákladov).
+// ---------------------------------------------------------------------
+let
+    Zdroj = Csv.Document(
+        File.Contents(PriecinokDat & "faktury.csv"),
+        [Delimiter = ";", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+    ),
+    Hlavicky = Table.PromoteHeaders(Zdroj, [PromoteAllScalars = true]),
+    Typy = Table.TransformColumnTypes(
+        Hlavicky,
+        {
+            {"id", type text}, {"datum", type date}, {"dodavatel", type text}, {"popis", type text},
+            {"suma", Currency.Type}, {"kategoria_kod", type text}, {"kategoria", type text},
+            {"vozidlo_id", type text}, {"vozidlo", type text}, {"sposob_zaradenia", type text}
+        },
+        "en-US"
+    )
+in
+    Typy
+
+
+// ---------------------------------------------------------------------
+// NÁZOV DOTAZU: PlanNakladov
+// Plánované mesačné náklady každého auta po skupinách (z nastavení vozidla).
+// ---------------------------------------------------------------------
+let
+    Zdroj = Csv.Document(
+        File.Contents(PriecinokDat & "plan_nakladov.csv"),
+        [Delimiter = ";", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+    ),
+    Hlavicky = Table.PromoteHeaders(Zdroj, [PromoteAllScalars = true]),
+    Typy = Table.TransformColumnTypes(
+        Hlavicky,
+        {
+            {"vozidlo_id", type text}, {"vozidlo", type text}, {"kategoria_kod", type text},
+            {"kategoria", type text}, {"plan_mesacne", Currency.Type}
+        },
+        "en-US"
+    )
+in
+    Typy

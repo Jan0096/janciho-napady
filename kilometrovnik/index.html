@@ -6,6 +6,7 @@
 <title>Kilometrovník dopravcu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: nástroj s tromi záložkami; vľavo formulár, vpravo lepkavý panel výsledkov; na mobile pod sebou. */
@@ -217,6 +218,31 @@ table.list tr.best td { background: var(--good-soft); }
 .file .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 560px) { .file { grid-template-columns: minmax(0, 1fr); } .file .acts { justify-content: flex-start; } }
 textarea.copybox { width: 100%; min-height: 140px; font: 12px/1.4 var(--f-num); background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; }
+/* faktúry */
+.addgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 8px; }
+.addbox { border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; display: grid; gap: 10px; align-content: start; }
+.addbox h4 { margin: 0; font: 700 17px/1.2 var(--f-display); }
+.addbox textarea { width: 100%; min-height: 84px; font: 13px/1.4 var(--f-num); background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; resize: vertical; }
+.mini { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mini .wide { grid-column: 1 / -1; }
+.suggest { font-size: 13px; color: var(--ink-2); min-height: 1.4em; }
+.suggest b { color: var(--accent); }
+.brow { display: grid; grid-template-columns: minmax(110px, 190px) minmax(0, 1fr) minmax(150px, auto); gap: 12px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.brow:last-child { border-bottom: 0; }
+.brow .bn { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brow .bt { position: relative; height: 16px; background: var(--surface-2); border-radius: 3px; }
+.brow .ba { position: absolute; left: 0; top: 3px; height: 10px; border-radius: 2px; background: var(--accent); }
+.brow .bp { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
+.brow .bv { font: 13px/1.3 var(--f-num); font-variant-numeric: tabular-nums; text-align: right; }
+.brow .bv small { display: block; font-size: 12px; }
+@media (max-width: 560px) { .brow { grid-template-columns: minmax(0, 1fr) auto; } .brow .bt { grid-column: 1 / -1; grid-row: 2; } }
+.tag { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 99px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.tag.auto { background: var(--accent-soft); color: var(--accent); }
+.tag.none { background: var(--bad-soft); color: var(--bad); }
+table.list select { padding: 5px 6px; font-size: 13px; width: auto; max-width: 190px; }
+details.rules { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+details.rules summary { cursor: pointer; font-weight: 600; }
+details.rules ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
 label.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
 footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch; }
 @media (max-width: 480px) {
@@ -246,6 +272,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       <button role="tab" data-tab="ponuky" id="tab-ponuky">3. Porovnanie ponúk<span class="count" id="offerCount"></span></button>
       <button role="tab" data-tab="firmy" id="tab-firmy">4. Firmy</button>
       <button role="tab" data-tab="powerbi" id="tab-powerbi">5. Financie a Power BI</button>
+      <button role="tab" data-tab="faktury" id="tab-faktury">6. Nákladové faktúry<span class="count" id="invCount"></span></button>
     </nav>
   </header>
 
@@ -378,6 +405,14 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   </section>
 
   <!-- ZÁLOŽKA 5: FINANCIE A POWER BI -->
+  <section id="view-faktury" hidden>
+    <div class="stack">
+      <div class="panel" id="invAddPanel"></div>
+      <div class="panel" id="invEvalPanel"></div>
+      <div class="panel" id="invListPanel"></div>
+    </div>
+  </section>
+
   <section id="view-powerbi" hidden>
     <div class="panel" id="pbiPanel"></div>
   </section>
@@ -441,7 +476,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   function defaultState() {
     const v = Object.assign({ id: uid(), example: true }, PRESETS.tahac, { name: 'Ťahač 01 (príklad)' });
     return {
-      vehicles: [v], activeId: v.id, tab: 'vozidla', offers: [], firmFilter: 'vsetky', firmMetric: 'ziskDen',
+      vehicles: [v], activeId: v.id, tab: 'vozidla', offers: [], invoices: [], supplierRules: {}, invMonth: 'all', invVeh: 'all', invOnlyNone: false, firmFilter: 'vsetky', firmMetric: 'ziskDen',
       trip: { datum: today(), firma: 'Zákazník A (príklad)', splatnost: '30', trasa: 'Žilina → Mníchov (príklad)', vehId: v.id, cena: '1050', cenaTyp: 'spolu', km: '620', prazdne: '80', dni: '', myto: '165', ine: '0' },
     };
   }
@@ -453,6 +488,8 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       const s = JSON.parse(raw);
       if (!s || !Array.isArray(s.vehicles) || !s.vehicles.length) return null;
       s.offers = Array.isArray(s.offers) ? s.offers : [];
+      s.invoices = Array.isArray(s.invoices) ? s.invoices : [];
+      s.supplierRules = s.supplierRules && typeof s.supplierRules === 'object' ? s.supplierRules : {};
       s.offers.forEach(o => { if (o.firma == null) o.firma = ''; if (!o.stav) o.stav = 'ponuka'; if (o.zaplatena == null) o.zaplatena = false; });
       s.trip = Object.assign(blankTrip(s.vehicles[0].id), s.trip || {});
       if (!s.vehicles.some(v => v.id === s.activeId)) s.activeId = s.vehicles[0].id;
@@ -556,12 +593,13 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   function setTab(tab) {
     state.tab = tab; save();
     document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
-    ['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
+    ['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
     if (tab === 'jazda') renderTrip(true);
     if (tab === 'ponuky') renderOffers();
     if (tab === 'vozidla') renderVehicle(true);
     if (tab === 'firmy') renderFirms();
     if (tab === 'powerbi') renderPbi();
+    if (tab === 'faktury') renderInvoices(true);
   }
   document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
@@ -1132,6 +1170,20 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         ['id', 'nazov', 'fixne_mesacne', 'diety_den', 'km_mesacne', 'dni_mesacne', 'variabilne_km', 'fixne_km', 'naklad_km', 'ciel_zisk_pct'],
         state.vehicles.map(v => { const c = calc(v); return [v.id, v.name || '', c.fixMes, c.dieta, c.km, c.dni, c.varKm, c.fixKm + c.dietaKm, c.totalKm, c.zisk]; })),
     },
+    'faktury.csv': {
+      title: 'Faktúry', desc: 'Nákladové faktúry so zaradením do nákladovej skupiny a k vozidlu.',
+      count: () => state.invoices.length,
+      build: () => csv(
+        ['id', 'datum', 'dodavatel', 'popis', 'suma', 'kategoria_kod', 'kategoria', 'vozidlo_id', 'vozidlo', 'sposob_zaradenia'],
+        state.invoices.map(i => [i.id, i.datum, i.dodavatel, i.popis, i.suma, i.kategoria, CAT_LABEL[i.kategoria] || i.kategoria,
+          i.vozidloId || '', i.vozidloId ? (vehById(i.vozidloId).name || '') : 'Celá firma', HOW_LABEL[i.sposob] || ''])),
+    },
+    'plan_nakladov.csv': {
+      title: 'Plán nákladov', desc: 'Plánované mesačné náklady každého auta po nákladových skupinách (z nastavení vozidla).',
+      count: () => state.vehicles.length * PLAN_CATS.length,
+      build: () => csv(['vozidlo_id', 'vozidlo', 'kategoria_kod', 'kategoria', 'plan_mesacne'],
+        state.vehicles.flatMap(v => { const pm = planMonthly(v); return PLAN_CATS.map(k => [v.id, v.name || '', k, CAT_LABEL[k], pm[k]]); })),
+    },
   };
 
   // Na claude.ai ide sťahovanie cez schvaľovacie okno (capability "downloads"), v počítači cez bežný odkaz.
@@ -1189,9 +1241,9 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       </div>
       <p class="hint" style="margin:-6px 0 22px">Úhradu faktúry označíš v záložke <b>Porovnanie ponúk</b> (políčko Zaplatená). Splatnosť sa počíta od dátumu jazdy.</p>
 
-      <div class="section-title"><h3>Export do Power BI</h3><span>3 súbory CSV, oddeľovač bodkočiarka, UTF-8</span></div>
+      <div class="section-title"><h3>Export do Power BI</h3><span>${Object.keys(EXPORTS).length} súborov CSV, oddeľovač bodkočiarka, UTF-8</span></div>
       <ol class="steps">
-        <li>Stiahni všetky tri súbory do <b>jedného priečinka</b>, napríklad <span class="num">C:\\Kilometrovnik\\</span>. Názvy súborov nemeň.</li>
+        <li>Stiahni všetky súbory do <b>jedného priečinka</b>, napríklad <span class="num">C:\\Kilometrovnik\\</span>. Názvy súborov nemeň.</li>
         <li>V Power BI Desktop vlož hotové dotazy a vzorce z priečinka <span class="num">kilometrovnik/powerbi/</span> v repozitári. Postup je v súbore <span class="num">NAVOD.md</span>.</li>
         <li>Keď pribudnú nové jazdy, exportuj znova do toho istého priečinka (prepíš súbory) a v Power BI klikni <b>Obnoviť</b>.</li>
       </ol>
@@ -1204,7 +1256,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
           </div>`).join('')}
       </div>
       <div class="toolbar" style="margin:0">
-        <button class="btn" id="dlAll">Stiahnuť všetky 3 súbory</button>
+        <button class="btn" id="dlAll">Stiahnuť všetky súbory</button>
         ${state.offers.length ? '' : '<button class="btn" id="loadSample2">Načítať ukážkové jazdy</button>'}
       </div>
       <p class="hint" style="margin:12px 0 0;max-width:75ch">Na claude.ai sa pred stiahnutím zobrazí potvrdzovacie okno, každý súbor potvrď. Ak sa nič nestiahne, použi <b>Kopírovať</b>, vlož text do Poznámkového bloku a ulož ho s rovnakým názvom súboru v kódovaní UTF-8.</p>`;
@@ -1220,9 +1272,387 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     const ls = $('#loadSample2'); if (ls) ls.addEventListener('click', loadSample);
   }
 
+  // ---------- Záložka 6: nákladové faktúry ----------
+  const CATS = [
+    ['nafta', 'Nafta'], ['adblue', 'AdBlue'], ['myto', 'Mýto'], ['pneu', 'Pneumatiky'], ['servis', 'Servis a opravy'],
+    ['leasing', 'Leasing a splátky'], ['poistenie', 'Poistenie'], ['mzdy', 'Mzdy a odvody'], ['diety', 'Diéty a cestovné'],
+    ['dane', 'Dane, známky, STK'], ['rezia', 'Réžia'], ['ine', 'Ostatné'], ['nezaradene', 'Nezaradené'],
+  ];
+  const CAT_LABEL = Object.fromEntries(CATS);
+  const PLAN_CATS = ['nafta', 'adblue', 'pneu', 'servis', 'leasing', 'poistenie', 'mzdy', 'diety', 'dane', 'rezia', 'ine'];
+  const HOW_LABEL = { pravidlo: 'automaticky', dodavatel: 'podľa dodávateľa', rucne: 'ručne', nezaradene: 'nezaradené' };
+  // Poradie je dôležité: prvá zhoda vyhráva (AdBlue a mýto pred naftou, mzdy pred poistením, pneu pred servisom).
+  const KEYWORDS = [
+    ['adblue', ['adblue', 'ad blue', 'mocovin']],
+    ['myto', ['myto', 'myta', 'mytn', 'emyto', 'toll', 'maut', 'asfinag', 'satellic', 'ulit', 'hu-go', 'viatoll', 'e-toll', 'telepass', 'peage', 'dialnicny poplatok']],
+    ['pneu', ['pneu', 'continental', 'michelin', 'bridgestone', 'goodyear', 'hankook', 'protektor', 'gumy']],
+    ['nafta', ['nafta', 'diesel', 'motorova', 'pohonne', ' phm', 'tankovan', 'shell', 'omv', 'slovnaft', ' mol ', 'eurowag', ' dkv', 'as24', ' uta ', 'orlen', 'lukoil', 'circle k', 'palivo', 'cerpacia']],
+    ['leasing', ['leasing', 'lizing', 'splatka', ' uver', 'financovan']],
+    ['mzdy', ['mzda', 'mzdy', 'vyplata', 'socialna poistovna', 'zdravotna', 'vszp', 'dovera', 'union zp', 'odvody']],
+    ['poistenie', ['poisten', 'poistov', 'allianz', 'kooperativa', 'generali', 'uniqa', 'komunalna', ' cmr', ' pzp', 'havarijn']],
+    ['diety', ['diety', 'cestovne', 'stravne', 'ubytovan', 'hotel']],
+    ['dane', ['dan z motor', 'danovy urad', 'znamk', 'vignet', 'dialnicn', ' stk', 'emisna', 'licenci', 'kalibrac']],
+    ['servis', ['servis', 'oprav', 'nahradne', 'diely', 'autodiel', 'olej', 'filtr', 'brzd', 'scania', 'volvo', 'iveco', ' daf', ' man ', 'mercedes', 'renault trucks', 'umyvan', 'mycka', 'truck service']],
+    ['rezia', ['uctovn', 'najom', 'kancelar', 'telekom', 'orange', ' o2 ', 'software', 'internet', 'energi', 'elektrin', 'advokat', 'kancelarske']],
+    ['ine', ['parkov', 'parking', ' gps', 'trajekt', 'ferry', 'tachograf', 'telefon', 'poplatok']],
+  ];
+  const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const plateNorm = (t) => String(t || '').toUpperCase().replace(/[\s-]/g, '');
+
+  function categorize(dodavatel, popis) {
+    const sup = norm(dodavatel);
+    if (sup && state.supplierRules[sup]) return { kategoria: state.supplierRules[sup], sposob: 'dodavatel', kw: dodavatel };
+    const text = ' ' + norm(dodavatel + ' ' + popis) + ' ';
+    for (const [cat, words] of KEYWORDS) {
+      const w = words.find(k => text.includes(k));
+      if (w) return { kategoria: cat, sposob: 'pravidlo', kw: w.trim() };
+    }
+    return { kategoria: 'nezaradene', sposob: 'nezaradene', kw: '' };
+  }
+  function vehicleFor(dodavatel, popis) {
+    const text = plateNorm(dodavatel + ' ' + popis);
+    for (const v of state.vehicles) {
+      const plates = String(v.name || '').toUpperCase().match(/\b[A-Z]{2}[\s-]?\d{3}[\s-]?[A-Z]{2}\b/g) || [];
+      if (plates.some(pl => text.includes(plateNorm(pl)))) return v.id;
+    }
+    return '';
+  }
+  function planMonthly(v) {
+    const f = (k) => num(v[k]); const km = f('kmMes');
+    return {
+      nafta: f('spotreba') / 100 * f('nafta') * km, adblue: f('adblue') / 100 * f('adbluecena') * km,
+      pneu: f('pneuKm') > 0 ? f('pneu') / f('pneuKm') * km : 0, servis: f('servis') * km,
+      leasing: f('leasing'), poistenie: f('poistenie'), mzdy: f('mzda'), diety: f('dieta') * f('dni'),
+      dane: (f('dan') + f('znamky')) / 12, rezia: f('rezia'), ine: f('ine'),
+    };
+  }
+  function makeInvoice(datum, dodavatel, popis, suma, kategoria, vozidloId) {
+    const auto = categorize(dodavatel, popis);
+    const inv = { id: uid(), datum, dodavatel: String(dodavatel || '').trim(), popis: String(popis || '').trim(), suma: Math.abs(suma),
+      kategoria: auto.kategoria, sposob: auto.sposob, kw: auto.kw, vozidloId: vozidloId ?? vehicleFor(dodavatel, popis) };
+    if (kategoria && kategoria !== auto.kategoria) { inv.kategoria = kategoria; inv.sposob = 'rucne'; inv.kw = ''; }
+    return inv;
+  }
+  function updateInvCount() {
+    const none = state.invoices.filter(i => i.kategoria === 'nezaradene').length;
+    $('#invCount').textContent = state.invoices.length ? `(${state.invoices.length}${none ? ', ' + none + ' nezar.' : ''})` : '';
+  }
+
+  // --- import ---
+  function parseAmount(v) {
+    if (typeof v === 'number') return v;
+    let t = String(v || '').replace(/[\s €]|EUR/gi, '');
+    if (!t) return NaN;
+    const lc = t.lastIndexOf(','), ld = t.lastIndexOf('.');
+    if (lc > -1 && ld > -1) t = lc > ld ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+    else if (lc > -1) t = t.replace(',', '.');
+    const n = parseFloat(t);
+    return isFinite(n) ? n : NaN;
+  }
+  function parseDate(v) {
+    if (v instanceof Date && !isNaN(v)) return new Date(v.getTime() - v.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const t = String(v || '').trim();
+    let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    m = t.match(/^(\d{1,2})\s*[./]\s*(\d{1,2})\s*[./]\s*(\d{2,4})/);
+    if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }
+    if (/^\d{5}(\.\d+)?$/.test(t)) { const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(+t) * 86400000); return d.toISOString().slice(0, 10); }
+    return '';
+  }
+  function parseDelimited(text) {
+    const first = text.split(/\r?\n/).find(l => l.trim()) || '';
+    const delim = ['\t', ';', ','].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === delim) { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += ch;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(r => r.some(c => String(c).trim()));
+  }
+  function importRows(rows) {
+    if (!rows.length) return { added: 0, skipped: 0, dup: 0 };
+    const find = (hdr, res) => { for (const re of res) { const i = hdr.findIndex(h => re.test(h)); if (i > -1) return i; } return -1; };
+    let start = 0, col = { d: 0, s: 1, p: 2, a: 3 };
+    for (let r = 0; r < Math.min(rows.length, 10); r++) {
+      const hdr = rows[r].map(norm);
+      const d = find(hdr, [/datum|date/]);
+      const a = find(hdr, [/bez dph|zaklad/, /suma|ciastka|amount|celkom|spolu|cena|hodnota/]);
+      if (d > -1 && a > -1) {
+        col = { d, a, s: find(hdr, [/dodavatel|partner|supplier|obchodn|protistran|nazov|firma|prijemca/]), p: find(hdr, [/popis|text|ucel|poznamka|polozka|description|predmet|sprava/]) };
+        start = r + 1; break;
+      }
+    }
+    let added = 0, skipped = 0, dup = 0;
+    const keys = new Set(state.invoices.map(i => i.datum + '|' + norm(i.dodavatel) + '|' + i.suma.toFixed(2)));
+    rows.slice(start).forEach(r => {
+      const datum = parseDate(r[col.d]); const suma = parseAmount(r[col.a]);
+      if (!datum || !isFinite(suma) || suma === 0) { skipped++; return; }
+      const dod = col.s > -1 ? r[col.s] : ''; const pop = col.p > -1 ? r[col.p] : '';
+      const key = datum + '|' + norm(dod) + '|' + Math.abs(suma).toFixed(2);
+      if (keys.has(key)) { dup++; return; }
+      keys.add(key);
+      state.invoices.push(makeInvoice(datum, dod, pop, suma)); added++;
+    });
+    return { added, skipped, dup };
+  }
+  function afterImport(res) {
+    save(); updateInvCount(); renderInvoices(true);
+    const none = state.invoices.filter(i => i.kategoria === 'nezaradene').length;
+    toast(res.added ? `Pridaných ${res.added} faktúr${res.dup ? `, ${res.dup} duplicít preskočených` : ''}${none ? ` · ${none} treba zaradiť ručne` : ' · všetky zaradené'}`
+      : `Nič nepribudlo${res.dup ? ` (${res.dup} už v zozname)` : ''}. Skontroluj stĺpce: dátum, dodávateľ, popis, suma.`);
+  }
+  async function importFile(file) {
+    try {
+      if (/\.(xlsx|xls|ods)$/i.test(file.name)) {
+        if (!window.XLSX) { toast('Excel sa nedá načítať bez internetu. Ulož ho ako CSV.'); return; }
+        const wb = window.XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+        const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+        afterImport(importRows(rows.filter(r => r.some(c => String(c).trim()))));
+      } else {
+        let text = await file.text();
+        if (text.includes('�') && window.TextDecoder) text = new TextDecoder('windows-1250').decode(await file.arrayBuffer());
+        afterImport(importRows(parseDelimited(text.replace(/^﻿/, ''))));
+      }
+    } catch (e) { toast('Súbor sa nepodarilo prečítať. Skús ho uložiť ako CSV.'); }
+  }
+
+  // --- ukážka ---
+  function loadSampleInvoices() {
+    const v = state.vehicles[0]; const t = today(); const ym = (back) => { const d = new Date(t + 'T12:00:00'); d.setDate(1); d.setMonth(d.getMonth() - back); return d.toISOString().slice(0, 7); };
+    const rows = [];
+    [3, 2, 1].forEach((back, idx) => {
+      const m = ym(back);
+      rows.push([m + '-08', 'Čerpacia stanica Diesel Plus s.r.o. (príklad)', 'Nafta 1 590 l, palivová karta', 2195 + idx * 40]);
+      rows.push([m + '-22', 'Čerpacia stanica Diesel Plus s.r.o. (príklad)', 'Nafta 1 610 l, palivová karta', 2222 - idx * 25]);
+      rows.push([m + '-22', 'Čerpacia stanica Diesel Plus s.r.o. (príklad)', 'AdBlue 160 l', 72]);
+      rows.push([m + '-05', 'Mýtny systém (príklad)', 'Vyúčtovanie elektronického mýta SK + AT', 1180 + idx * 60]);
+      rows.push([m + '-10', 'Leasing Partner a.s. (príklad)', 'Splátka leasingu ťahač', 2100]);
+      rows.push([m + '-10', 'Poisťovňa Istota a.s. (príklad)', 'PZP a havarijné poistenie', 420]);
+      rows.push([m + '-12', 'Mzdy (príklad)', 'Výplata vodiča', 1650]);
+      rows.push([m + '-12', 'Sociálna poisťovňa', 'Odvody zamestnávateľa', 650]);
+      rows.push([m + '-15', 'Účtovná kancelária Bilancia (príklad)', 'Vedenie účtovníctva', 450]);
+      rows.push([m + '-18', 'Parkovisko pri D1 (príklad)', 'Strážené parkovanie', 45 + idx * 10]);
+    });
+    rows.push([ym(2) + '-14', 'Truck Servis Žilina s.r.o. (príklad)', 'Výmena oleja a filtrov, brzdové platničky', 980]);
+    rows.push([ym(1) + '-03', 'Pneuservis Horák (príklad)', '2 ks pneumatiky hnacia náprava', 1240]);
+    rows.push([ym(1) + '-20', 'Obchod Kovo s.r.o. (príklad)', 'Upínacie popruhy 10 ks', 86]);
+    rows.forEach(([d, s, p, a]) => state.invoices.push(makeInvoice(d, s, p, a, null, v.id)));
+    save(); updateInvCount(); renderInvoices(true);
+    toast('Načítané ukážkové faktúry za 3 mesiace');
+  }
+
+  // --- vykreslenie ---
+  const catOptions = (sel) => CATS.map(([k, l]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${l}</option>`).join('');
+  const vehOptionsInv = (sel) => `<option value=""${!sel ? ' selected' : ''}>Celá firma</option>` + state.vehicles.map(v => `<option value="${v.id}"${v.id === sel ? ' selected' : ''}>${esc(v.name || 'Bez názvu')}</option>`).join('');
+  const monthLabel = (ym) => { const [y, m] = ym.split('-'); return `${+m}/${y}`; };
+
+  function renderInvoices(full) {
+    if (full) renderInvAdd();
+    renderInvEval();
+    renderInvList();
+  }
+
+  function renderInvAdd() {
+    $('#invAddPanel').innerHTML = `
+      <div class="section-title" style="margin-top:0"><h3>Pridať nákladové faktúry</h3><span>sumy bez DPH</span></div>
+      <div class="addgrid">
+        <div class="addbox">
+          <h4>Zo súboru</h4>
+          <p class="hint" style="margin:0">Export z účtovníctva alebo banky v CSV alebo Excel (.xlsx). Stačia stĺpce <b>dátum, dodávateľ, popis, suma</b>. Ostatné stĺpce sa ignorujú.</p>
+          <input type="file" id="invFile" accept=".csv,.txt,.xlsx,.xls,.ods" style="font-size:14px;max-width:100%">
+        </div>
+        <div class="addbox">
+          <h4>Vložiť z Excelu</h4>
+          <label class="lbl" for="invPaste" style="margin:0">Označ riadky v Exceli (aj s hlavičkou), skopíruj a vlož sem</label>
+          <textarea id="invPaste" placeholder="Dátum	Dodávateľ	Popis	Suma bez DPH"></textarea>
+          <div><button class="btn small" id="invPasteBtn">Načítať vložené</button></div>
+        </div>
+        <div class="addbox">
+          <h4>Ručne</h4>
+          <div class="mini">
+            <div><label class="lbl" for="i-datum">Dátum</label><input type="date" id="i-datum" value="${today()}"></div>
+            <div><label class="lbl" for="i-suma">Suma bez DPH (€)</label><input type="text" inputmode="decimal" class="n" id="i-suma"></div>
+            <div class="wide"><label class="lbl" for="i-dod">Dodávateľ</label><input type="text" id="i-dod" list="supList" autocomplete="off"><datalist id="supList">${[...new Set(state.invoices.map(i => i.dodavatel).filter(Boolean))].map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist></div>
+            <div class="wide"><label class="lbl" for="i-popis">Popis / položka</label><input type="text" id="i-popis" placeholder="napr. Nafta 600 l, ZA123AB"></div>
+            <div><label class="lbl" for="i-kat">Skupina nákladov</label><select id="i-kat"><option value="">Automaticky</option>${catOptions('').replace(' selected', '')}</select></div>
+            <div><label class="lbl" for="i-veh">Vozidlo</label><select id="i-veh"><option value="auto">Automaticky (podľa ŠPZ)</option>${vehOptionsInv('').replace(' selected', '')}</select></div>
+          </div>
+          <div class="suggest" id="i-suggest"></div>
+          <div><button class="btn primary small" id="invAddBtn">Pridať faktúru</button></div>
+        </div>
+      </div>
+      <p class="hint" style="margin:6px 0 0">Ak dáš do názvu vozidla ŠPZ (napr. <span class="num">Ťahač ZA123AB</span>), faktúry s touto ŠPZ v popise sa priradia k autu samé. Keď faktúru zaradíš ručne, appka si dodávateľa zapamätá a ďalšie jeho faktúry zaradí rovnako.</p>
+      ${state.invoices.length ? '' : '<div class="toolbar" style="margin:12px 0 0"><button class="btn" id="invSample">Načítať ukážkové faktúry</button></div>'}`;
+
+    $('#invFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importFile(f); e.target.value = ''; });
+    $('#invPasteBtn').addEventListener('click', () => {
+      const t = $('#invPaste').value; if (!t.trim()) { toast('Najprv vlož riadky z Excelu'); return; }
+      const res = importRows(parseDelimited(t)); if (res.added) $('#invPaste').value = ''; afterImport(res);
+    });
+    const sug = () => {
+      const k = $('#i-kat').value, d = $('#i-dod').value, pp = $('#i-popis').value;
+      if (!d.trim() && !pp.trim()) { $('#i-suggest').textContent = ''; return; }
+      const a = categorize(d, pp);
+      $('#i-suggest').innerHTML = k ? `Zaradí sa do: <b>${CAT_LABEL[k]}</b> (ručne)` :
+        a.kategoria === 'nezaradene' ? 'Nenašiel som zhodu. Vyber skupinu ručne, appka si ju pre tohto dodávateľa zapamätá.' :
+        `Zaradí sa do: <b>${CAT_LABEL[a.kategoria]}</b> (${a.sposob === 'dodavatel' ? 'zapamätaný dodávateľ' : 'podľa slova „' + esc(a.kw) + '“'})`;
+    };
+    ['#i-dod', '#i-popis', '#i-kat'].forEach(id => $(id).addEventListener('input', sug));
+    $('#invAddBtn').addEventListener('click', () => {
+      const datum = $('#i-datum').value, suma = parseAmount($('#i-suma').value), dod = $('#i-dod').value, pop = $('#i-popis').value;
+      if (!datum || !isFinite(suma) || !suma) { toast('Zadaj dátum a sumu'); return; }
+      if (!dod.trim() && !pop.trim()) { toast('Zadaj dodávateľa alebo popis'); return; }
+      const k = $('#i-kat').value, vsel = $('#i-veh').value;
+      const inv = makeInvoice(datum, dod, pop, suma, k || null, vsel === 'auto' ? undefined : vsel);
+      if (k && dod.trim()) state.supplierRules[norm(dod)] = k;
+      state.invoices.push(inv); save(); updateInvCount();
+      toast(`Pridané do skupiny ${CAT_LABEL[inv.kategoria]}`);
+      renderInvoices(true);
+    });
+    const smp = $('#invSample'); if (smp) smp.addEventListener('click', loadSampleInvoices);
+  }
+
+  function invFiltered() {
+    return state.invoices.filter(i => (state.invMonth === 'all' || i.datum.slice(0, 7) === state.invMonth) &&
+      (state.invVeh === 'all' || i.vozidloId === state.invVeh));
+  }
+
+  function renderInvEval() {
+    const p = $('#invEvalPanel');
+    if (!state.invoices.length) { p.hidden = true; return; }
+    p.hidden = false;
+    const months = [...new Set(state.invoices.map(i => i.datum.slice(0, 7)))].sort().reverse();
+    if (state.invMonth !== 'all' && !months.includes(state.invMonth)) state.invMonth = 'all';
+    if (state.invVeh !== 'all' && !state.vehicles.some(v => v.id === state.invVeh)) state.invVeh = 'all';
+    const nMonths = state.invMonth === 'all' ? months.length : 1;
+    const vehs = state.invVeh === 'all' ? state.vehicles : [vehById(state.invVeh)];
+    const inv = invFiltered();
+    const plan = {}; PLAN_CATS.forEach(k => { plan[k] = 0; });
+    vehs.forEach(v => { const pm = planMonthly(v); PLAN_CATS.forEach(k => { plan[k] += pm[k] * nMonths; }); });
+    const inPeriod = (o) => o.stav === 'prevzata' && (state.invMonth === 'all' ? months.includes(String(o.datum || '').slice(0, 7)) : String(o.datum || '').slice(0, 7) === state.invMonth)
+      && (state.invVeh === 'all' || o.vozidloId === state.invVeh);
+    const trips = state.offers.filter(inPeriod);
+    plan.myto = trips.reduce((a, o) => a + (o.myto || 0), 0);
+    const act = {}; inv.forEach(i => { act[i.kategoria] = (act[i.kategoria] || 0) + i.suma; });
+    const totalAct = inv.reduce((a, i) => a + i.suma, 0);
+    const totalPlan = Object.values(plan).reduce((a, x) => a + x, 0);
+    const none = inv.filter(i => i.kategoria === 'nezaradene');
+    const trzby = trips.reduce((a, o) => a + o.cena, 0);
+    const kmTrips = trips.reduce((a, o) => a + o.kmTotal, 0);
+
+    const rowsData = CATS.map(([k, l]) => ({ k, l, a: act[k] || 0, pl: plan[k] || 0 })).filter(r => r.a > 0 || r.pl > 0).sort((x, y) => Math.max(y.a, y.pl) - Math.max(x.a, x.pl));
+    const max = Math.max(1, ...rowsData.map(r => Math.max(r.a, r.pl))) * 1.05;
+    const over = rowsData.filter(r => r.pl > 0 && r.a > r.pl * 1.1).sort((x, y) => (y.a - y.pl) - (x.a - x.pl));
+    const diff = totalAct - totalPlan;
+
+    p.innerHTML = `
+      <div class="section-title" style="margin-top:0"><h3>Skutočné náklady vs. plán</h3><span>plán = čísla zo záložky Náklady vozidla</span></div>
+      <div class="toolbar">
+        <div style="flex:0 1 200px"><label class="lbl" for="invMonth">Obdobie</label><select id="invMonth"><option value="all">Všetky mesiace (${months.length})</option>${months.map(m => `<option value="${m}"${m === state.invMonth ? ' selected' : ''}>${monthLabel(m)}</option>`).join('')}</select></div>
+        <div style="flex:0 1 240px"><label class="lbl" for="invVeh">Vozidlo</label><select id="invVeh"><option value="all">Celá firma</option>${state.vehicles.map(v => `<option value="${v.id}"${v.id === state.invVeh ? ' selected' : ''}>${esc(v.name || 'Bez názvu')}</option>`).join('')}</select></div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Skutočné náklady</div><div class="name num">${eur(totalAct)}</div><div class="v">${inv.length} faktúr${kmTrips ? ` · ${fmt(totalAct / kmTrips, 2)} €/km zo zrealiz. jázd` : ''}</div></div>
+        <div class="tile"><div class="k">Plán za obdobie</div><div class="name num">${eur(totalPlan)}</div><div class="v">${nMonths} ${nMonths === 1 ? 'mesiac' : nMonths < 5 ? 'mesiace' : 'mesiacov'} · ${vehs.length} ${vehs.length === 1 ? 'vozidlo' : 'vozidiel'}</div></div>
+        <div class="tile ${diff > 0 ? 'bad' : 'good'}"><div class="k"><i></i>${diff > 0 ? 'Nad plánom' : 'Pod plánom'}</div><div class="name num">${diff > 0 ? '+' : '−'}${eur(Math.abs(diff))}</div><div class="v">${totalPlan ? fmt(Math.abs(diff) / totalPlan * 100, 1) + ' % ' + (diff > 0 ? 'viac' : 'menej') + ' než plán' : ''}</div></div>
+        ${trzby ? `<div class="tile ${trzby - totalAct >= 0 ? 'good' : 'bad'}"><div class="k"><i></i>Výsledok podľa faktúr</div><div class="name num">${eur(trzby - totalAct)}</div><div class="v">tržby ${eur(trzby)} − náklady z faktúr</div></div>` : ''}
+        ${none.length ? `<div class="tile bad"><div class="k"><i></i>Nezaradené</div><div class="name num">${none.length} faktúr</div><div class="v">${eur(none.reduce((a, i) => a + i.suma, 0))} · zaraď ich v zozname nižšie</div></div>` : ''}
+      </div>
+      <div class="section-title"><h3>Podľa skupín nákladov</h3><span>prejdi myšou pre detail</span></div>
+      <div>
+        ${rowsData.map(r => {
+          const d = r.a - r.pl, pct = r.pl > 0 ? d / r.pl * 100 : null;
+          const cls = r.k === 'nezaradene' ? 'neg' : pct == null ? '' : pct > 10 ? 'neg' : pct < -10 ? 'pos' : '';
+          return `<div class="brow" title="${esc(r.l)}: skutočnosť ${eur(r.a)}, plán ${eur(r.pl)}">
+            <div class="bn">${r.l}</div>
+            <div class="bt"><div class="ba" style="width:${(r.a / max * 100).toFixed(2)}%"></div>${r.pl > 0 ? `<div class="bp" style="left:${(r.pl / max * 100).toFixed(2)}%"></div>` : ''}</div>
+            <div class="bv">${eur(r.a)} <span style="color:var(--muted)">/ ${r.pl > 0 ? eur(r.pl) : '—'}</span><small class="${cls}">${pct == null ? (r.k === 'nezaradene' ? 'treba zaradiť' : 'bez plánu') : (d >= 0 ? '+' : '−') + fmt(Math.abs(pct)) + ' % ' + (d >= 0 ? 'nad plánom' : 'pod plánom')}</small></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>skutočnosť z faktúr</span><span><i style="background:var(--ink);width:3px"></i>plán</span><span>mýto: plán = mýto zo zrealizovaných jázd</span></div>
+      ${over.length || none.length ? `<div class="section-title"><h3>Na čo sa pozrieť</h3></div><ul class="insights">
+        ${over.slice(0, 3).map(r => `<li><b>${r.l}</b> je o ${eur(r.a - r.pl)} (${fmt((r.a - r.pl) / r.pl * 100)} %) nad plánom. ${r.k === 'nafta' ? 'Skontroluj spotrebu alebo cenu nafty v nastavení vozidla.' : r.k === 'servis' ? 'Ak sa to opakuje, zvýš servis €/km v nastavení vozidla, aby ceny jázd sedeli.' : 'Over, či je plán v nastavení vozidla aktuálny.'}</li>`).join('')}
+        ${none.length ? `<li><b>${none.length} faktúr</b> za ${eur(none.reduce((a, i) => a + i.suma, 0))} nie je zaradených. Vyber im skupinu a appka si dodávateľa zapamätá.</li>` : ''}
+      </ul>` : ''}`;
+    $('#invMonth').addEventListener('change', (e) => { state.invMonth = e.target.value; save(); renderInvoices(false); });
+    $('#invVeh').addEventListener('change', (e) => { state.invVeh = e.target.value; save(); renderInvoices(false); });
+  }
+
+  function renderInvList() {
+    const p = $('#invListPanel');
+    if (!state.invoices.length) {
+      p.innerHTML = `<div class="empty"><h3>Zatiaľ žiadne faktúry</h3><p>Nahraj export z účtovníctva, vlož riadky z Excelu alebo pridaj faktúru ručne. Appka ju sama zaradí do skupiny nákladov.</p></div>`;
+      return;
+    }
+    const list = invFiltered().filter(i => !state.invOnlyNone || i.kategoria === 'nezaradene').sort((a, b) => b.datum.localeCompare(a.datum));
+    const rules = Object.entries(state.supplierRules);
+    p.innerHTML = `
+      <div class="section-title" style="margin-top:0"><h3>Zoznam faktúr</h3><span>${list.length} z ${state.invoices.length} · podľa filtra hore</span></div>
+      <div class="toolbar"><label class="check"><input type="checkbox" id="onlyNone"${state.invOnlyNone ? ' checked' : ''}> Len nezaradené</label></div>
+      <div class="scroll"><table class="list">
+        <thead><tr><th>Dátum</th><th>Dodávateľ</th><th>Popis</th><th class="r">Suma</th><th>Skupina nákladov</th><th>Zaradené</th><th>Vozidlo</th><th></th></tr></thead>
+        <tbody>${list.map(i => `
+          <tr>
+            <td class="num" style="font-size:13px">${esc(fmtDate(i.datum))}</td>
+            <td style="white-space:normal;min-width:160px">${esc(i.dodavatel || '—')}</td>
+            <td style="white-space:normal;min-width:180px;color:var(--ink-2)">${esc(i.popis)}</td>
+            <td class="r">${eur(i.suma, 2)}</td>
+            <td><select data-icat="${i.id}" aria-label="Skupina nákladov">${catOptions(i.kategoria)}</select></td>
+            <td><span class="tag ${i.sposob === 'nezaradene' ? 'none' : i.sposob === 'rucne' ? '' : 'auto'}" title="${i.kw ? 'zhoda: ' + esc(i.kw) : ''}">${HOW_LABEL[i.sposob] || ''}</span></td>
+            <td><select data-iveh="${i.id}" aria-label="Vozidlo">${vehOptionsInv(i.vozidloId)}</select></td>
+            <td><button class="btn small" data-idel="${i.id}">Odstrániť</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="toolbar" style="margin:14px 0 0;justify-content:flex-end"><span id="invClearWrap"><button class="btn danger small" id="invClear">Vymazať všetky faktúry</button></span></div>
+      <details class="rules">
+        <summary>Zapamätaní dodávatelia (${rules.length})</summary>
+        ${rules.length ? `<ul>${rules.map(([sup, k]) => `<li>${esc(sup)} → <b>${CAT_LABEL[k] || k}</b> <button class="btn small" data-rdel="${esc(sup)}" style="margin-left:6px">Zabudnúť</button></li>`).join('')}</ul>` : '<p class="hint">Zatiaľ žiadni. Pribudnú, keď niektorej faktúre zmeníš skupinu.</p>'}
+      </details>
+      <details class="rules">
+        <summary>Podľa čoho sa faktúry zaraďujú automaticky</summary>
+        <ul>${KEYWORDS.map(([k, w]) => `<li><b>${CAT_LABEL[k]}</b>: ${w.map(x => esc(x.trim())).join(', ')}</li>`).join('')}</ul>
+        <p class="hint">Hľadá sa v dodávateľovi aj v popise, bez ohľadu na diakritiku a veľké písmená. Zapamätaný dodávateľ má prednosť pred slovami.</p>
+      </details>`;
+
+    $('#onlyNone').addEventListener('change', (e) => { state.invOnlyNone = e.target.checked; save(); renderInvList(); });
+    p.querySelectorAll('[data-icat]').forEach(sel => sel.addEventListener('change', () => {
+      const inv = state.invoices.find(x => x.id === sel.dataset.icat); if (!inv) return;
+      inv.kategoria = sel.value; inv.sposob = sel.value === 'nezaradene' ? 'nezaradene' : 'rucne'; inv.kw = '';
+      const sup = norm(inv.dodavatel);
+      let more = 0;
+      if (sup && sel.value !== 'nezaradene') {
+        state.supplierRules[sup] = sel.value;
+        state.invoices.forEach(o => { if (o !== inv && norm(o.dodavatel) === sup && o.sposob !== 'rucne' && o.kategoria !== sel.value) { o.kategoria = sel.value; o.sposob = 'dodavatel'; o.kw = o.dodavatel; more++; } });
+      }
+      save(); updateInvCount(); renderInvoices(false);
+      toast(sup && sel.value !== 'nezaradene' ? `Zapamätané: ${inv.dodavatel} → ${CAT_LABEL[sel.value]}${more ? ` (preradených ďalších ${more})` : ''}` : 'Uložené');
+    }));
+    p.querySelectorAll('[data-iveh]').forEach(sel => sel.addEventListener('change', () => {
+      const inv = state.invoices.find(x => x.id === sel.dataset.iveh); if (inv) { inv.vozidloId = sel.value; save(); renderInvEval(); }
+    }));
+    p.querySelectorAll('[data-idel]').forEach(b => b.addEventListener('click', () => {
+      state.invoices = state.invoices.filter(x => x.id !== b.dataset.idel); save(); updateInvCount(); renderInvoices(state.invoices.length === 0);
+    }));
+    p.querySelectorAll('[data-rdel]').forEach(b => b.addEventListener('click', () => {
+      delete state.supplierRules[b.dataset.rdel]; save(); renderInvList(); toast('Dodávateľ zabudnutý');
+    }));
+    $('#invClear').addEventListener('click', () => {
+      $('#invClearWrap').innerHTML = `<span class="confirm">Vymazať všetky faktúry? <button class="btn small danger" id="icYes">Áno</button><button class="btn small" id="icNo">Nie</button></span>`;
+      $('#icYes').addEventListener('click', () => { state.invoices = []; save(); updateInvCount(); renderInvoices(true); });
+      $('#icNo').addEventListener('click', renderInvList);
+    });
+  }
+
   // ---------- Štart ----------
   updateCount();
-  setTab(['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi'].includes(state.tab) ? state.tab : 'vozidla');
+  updateInvCount();
+  setTab(['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury'].includes(state.tab) ? state.tab : 'vozidla');
 })();
 </script>
 </body>

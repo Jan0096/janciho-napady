@@ -145,3 +145,47 @@ RETURN
 // Farba pre podmienené formátovanie (Formát → Farba → fx → Hodnota poľa)
 Farba zisku =
 IF ( [Zisk] < 0, "#B3261E", "#1D7A3E" )
+
+
+// =====================================================================
+//  NÁKLADOVÉ FAKTÚRY (skutočnosť) vs. PLÁN
+// =====================================================================
+
+// ------------------------- TABUĽKA KATEGÓRIE -------------------------
+// Modelovanie → Nová tabuľka. Spája skupiny nákladov z faktúr aj z plánu.
+Kategorie =
+DISTINCT (
+    UNION (
+        SELECTCOLUMNS ( Faktury, "kategoria", Faktury[kategoria] ),
+        SELECTCOLUMNS ( PlanNakladov, "kategoria", PlanNakladov[kategoria] )
+    )
+)
+
+// ------------------------------ MIERY --------------------------------
+
+Skutočné náklady = SUM ( Faktury[suma] )
+
+Počet faktúr = COUNTROWS ( Faktury )
+
+Nezaradené faktúry =
+CALCULATE ( [Skutočné náklady], Faktury[kategoria_kod] = "nezaradene" )
+
+Plán nákladov =
+SUM ( PlanNakladov[plan_mesacne] ) * [Počet mesiacov]
+
+Odchýlka od plánu = [Skutočné náklady] - [Plán nákladov]
+
+Odchýlka od plánu % = DIVIDE ( [Odchýlka od plánu], [Plán nákladov] )
+// formát: Percento. Kladné = míňaš viac, než si plánoval.
+
+Skutočný náklad na km =
+DIVIDE (
+    [Skutočné náklady],
+    CALCULATE ( [Km spolu], Jazdy[stav] = "zrealizovana" )
+)
+
+Výsledok podľa faktúr =
+[Tržby zrealizované] - [Skutočné náklady]
+
+Farba odchýlky =
+IF ( [Odchýlka od plánu %] > 0.1, "#B3261E", IF ( [Odchýlka od plánu %] < -0.1, "#1D7A3E", "#48525C" ) )

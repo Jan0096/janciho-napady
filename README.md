@@ -77,9 +77,16 @@ Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrét
    - tlačidlo **Načítať ukážkové jazdy**, ak si chceš vyhodnotenie najprv pozrieť na príklade.
 5. **Financie a Power BI** – prehľad tržieb, zisku, neuhradených faktúr a faktúr po splatnosti (jazdy označuješ ako *Zrealizovaná* a *Zaplatená*, pri jazde zadáš dátum a splatnosť) a **export troch CSV súborov** (`jazdy.csv`, `firmy.csv`, `vozidla.csv`) pre Power BI.
 
+6. **Nákladové faktúry** – faktúry nahráš zo súboru z účtovníctva alebo banky (CSV, Excel), vložíš skopírované riadky z Excelu alebo zadáš ručne. Appka ich **sama zaradí do skupiny nákladov** (nafta, AdBlue, mýto, pneumatiky, servis, leasing, poistenie, mzdy, diéty, dane a známky, réžia, ostatné):
+   - najprv podľa **zapamätaného dodávateľa** (keď faktúru zaradíš ručne, ďalšie od toho istého dodávateľa sa zaradia rovnako),
+   - potom podľa **slov v dodávateľovi a popise** (napr. „nafta“, „Shell“, „mýto“, „leasing“, „poisťovňa“, „oprava“),
+   - k **vozidlu** podľa ŠPZ v popise (ŠPZ daj do názvu vozidla, napr. „Ťahač ZA123AB“).
+
+   Potom porovná **skutočné náklady s plánom** z nastavení vozidla po skupinách a mesiacoch a ukáže, kde míňaš viac, než si počítal. Zo súboru berie sumu **bez DPH** (stĺpec „Základ“ / „bez DPH“, ak existuje).
+
 ### Power BI (`kilometrovnik/powerbi/`)
 
-Hotové dotazy Power Query (`dotazy-power-query.m`), miery DAX (`miery.dax`: tržby, zisk, marža, zisk na deň, pohľadávky, cash flow podľa splatnosti, náklady na státie, odhad hospodárskeho výsledku, poradie firiem), ukážkové dáta a návod krok za krokom v [`kilometrovnik/powerbi/NAVOD.md`](kilometrovnik/powerbi/NAVOD.md).
+Hotové dotazy Power Query (`dotazy-power-query.m`), miery DAX (`miery.dax`: tržby, zisk, marža, zisk na deň, pohľadávky, cash flow podľa splatnosti, náklady na státie, odhad hospodárskeho výsledku, poradie firiem), miery pre faktúry (skutočné náklady vs. plán, odchýlka, výsledok podľa faktúr), ukážkové dáta a návod krok za krokom v [`kilometrovnik/powerbi/NAVOD.md`](kilometrovnik/powerbi/NAVOD.md).
 
 ## Ako počíta
 

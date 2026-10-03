@@ -1,10 +1,10 @@
 ﻿id;datum;firma;trasa;vozidlo_id;vozidlo;stav;zaplatena;km_naklad;km_prazdne;km_spolu;dni;trzba;naklady;variabilne_naklady;fixne_naklady;diety;myto;ine_naklady;zisk;marza_pct;zisk_den;splatnost_dni;datum_splatnosti
-xqhbnp7c;2026-07-21;Zákazník A (príklad);Žilina → Mníchov;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;1;620;80;700;1.5;1250;979.0626;338.765;392.7976;82.5;165;0;270.9374;27.6731;180.6249;30;2026-08-20
-1rk3s2en;2026-08-26;Zákazník A (príklad);Žilina → Linz;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;0;380;40;420;1;820;615.1241;203.259;261.8651;55;95;0;204.8759;33.3064;204.8759;30;2026-09-25
-wp1s4w7u;2026-10-01;Zákazník A (príklad);Trnava → Brno;qhfbsgeq;Ťahač 01 (príklad);ponuka;0;150;60;210;0.5;420;295.062;101.6295;130.9325;27.5;35;0;124.938;42.3429;249.8759;30;2026-10-31
-dwk9lbvw;2026-07-14;Zákazník B (príklad);Bratislava → Miláno;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;1;860;120;980;2;1450;1348.0012;474.271;523.7302;110;240;0;101.9988;7.5667;50.9994;60;2026-09-12
-6ql6izto;2026-09-08;Zákazník B (príklad);Nitra → Verona;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;0;780;150;930;2;1300;1293.8037;450.0735;523.7302;110;210;0;6.1963;0.4789;3.0982;60;2026-11-07
-qo3welq0;2026-06-05;Zákazník C (príklad);Košice → Varšava;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;0;520;200;720;1.5;780;883.7416;348.444;392.7976;82.5;60;0;-103.7416;-11.7389;-69.1611;90;2026-09-03
-jykcddv6;2026-08-17;Zákazník C (príklad);Prešov → Krakov;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;0;260;180;440;1;450;559.8031;212.938;261.8651;55;30;0;-109.8031;-19.6146;-109.8031;90;2026-11-15
-13h0caks;2026-08-09;Zákazník D (príklad);Žilina → Praha;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;1;350;30;380;1;860;590.7661;183.901;261.8651;55;90;0;269.2339;45.5737;269.2339;14;2026-08-23
-fq1n6nc6;2026-09-24;Zákazník D (príklad);Martin → Ostrava;qhfbsgeq;Ťahač 01 (príklad);zrealizovana;0;140;20;160;0.5;390;260.8645;77.432;130.9325;27.5;25;0;129.1355;49.5029;258.2709;14;2026-10-08
+z33grqgx;2026-07-21;Zákazník A (príklad);Žilina → Mníchov;vfag6vlv;Ťahač 01 (príklad);zrealizovana;1;620;80;700;1.5;1250;979.0626;338.765;392.7976;82.5;165;0;270.9374;27.6731;180.6249;30;2026-08-20
+2urlr3dr;2026-08-26;Zákazník A (príklad);Žilina → Linz;vfag6vlv;Ťahač 01 (príklad);zrealizovana;0;380;40;420;1;820;615.1241;203.259;261.8651;55;95;0;204.8759;33.3064;204.8759;30;2026-09-25
+jn87ge21;2026-10-01;Zákazník A (príklad);Trnava → Brno;vfag6vlv;Ťahač 01 (príklad);ponuka;0;150;60;210;0.5;420;295.062;101.6295;130.9325;27.5;35;0;124.938;42.3429;249.8759;30;2026-10-31
+tabmso3o;2026-07-14;Zákazník B (príklad);Bratislava → Miláno;vfag6vlv;Ťahač 01 (príklad);zrealizovana;1;860;120;980;2;1450;1348.0012;474.271;523.7302;110;240;0;101.9988;7.5667;50.9994;60;2026-09-12
+gm0arex7;2026-09-08;Zákazník B (príklad);Nitra → Verona;vfag6vlv;Ťahač 01 (príklad);zrealizovana;0;780;150;930;2;1300;1293.8037;450.0735;523.7302;110;210;0;6.1963;0.4789;3.0982;60;2026-11-07
+qsds31jx;2026-06-05;Zákazník C (príklad);Košice → Varšava;vfag6vlv;Ťahač 01 (príklad);zrealizovana;0;520;200;720;1.5;780;883.7416;348.444;392.7976;82.5;60;0;-103.7416;-11.7389;-69.1611;90;2026-09-03
+lttqq9k7;2026-08-17;Zákazník C (príklad);Prešov → Krakov;vfag6vlv;Ťahač 01 (príklad);zrealizovana;0;260;180;440;1;450;559.8031;212.938;261.8651;55;30;0;-109.8031;-19.6146;-109.8031;90;2026-11-15
+m9fv18v9;2026-08-09;Zákazník D (príklad);Žilina → Praha;vfag6vlv;Ťahač 01 (príklad);zrealizovana;1;350;30;380;1;860;590.7661;183.901;261.8651;55;90;0;269.2339;45.5737;269.2339;14;2026-08-23
+9cabm5lk;2026-09-24;Zákazník D (príklad);Martin → Ostrava;vfag6vlv;Ťahač 01 (príklad);zrealizovana;0;140;20;160;0.5;390;260.8645;77.432;130.9325;27.5;25;0;129.1355;49.5029;258.2709;14;2026-10-08
