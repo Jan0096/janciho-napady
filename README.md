@@ -57,7 +57,7 @@ Kľúč sa ukladá len v tvojom prehliadači na tvojom počítači. **Nikomu ho 
 
 ---
 
-# 🚛 Kilometrovník dopravcu (`kilometrovnik/`)
+# 🚛 Drivee (`kilometrovnik/`)
 
 Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrétneho auta**, a podľa toho ukáže, či sa ponuka (napr. z burzy prepráv) oplatí. Spustíš ju dvojklikom na `kilometrovnik/index.html` (funguje v akomkoľvek prehliadači, netreba internet ani API kľúč; bez internetu sa len použije náhradné písmo).
 

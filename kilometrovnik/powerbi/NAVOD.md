@@ -1,4 +1,4 @@
-# Kilometrovník → Power BI: návod krok za krokom
+# Drivee → Power BI: návod krok za krokom
 
 Tento priečinok obsahuje všetko na finančný prehľad dopravy v **Power BI Desktop**
 (zadarmo pre Windows, Microsoft Store alebo powerbi.microsoft.com).

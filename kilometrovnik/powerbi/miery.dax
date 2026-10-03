@@ -1,5 +1,5 @@
 // =====================================================================
-//  Kilometrovník dopravcu – DAX pre Power BI Desktop
+//  Drivee – DAX pre Power BI Desktop
 //  1) Tabuľku Kalendar vytvoríš cez: Modelovanie → Nová tabuľka
 //  2) Každú mieru cez: Modelovanie → Nová miera (vlož celý riadok "Názov = vzorec")
 //     Miery odporúčame dávať do tabuľky Jazdy.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Kilometrovník dopravcu</title>
+<title>Drivee</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -27,6 +27,7 @@
   --warn-soft: #fbeed4;
   --bad: #b3261e;
   --bad-soft: #f9e0de;
+  --t-top: #f39a55; --t-side: #cf5a0a; --t-end: #a4460a; --c-top: #5d6873; --c-side: #3b444e; --c-front: #262c33; --glass: #b9dcef; --tire: #191c20; --hub: #a3adb6; --shadow: rgba(20, 26, 32, .18);
   --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
   --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -37,6 +38,7 @@
   :root:not([data-theme="light"]) {
     --bg: #101317; --surface: #191e24; --surface-2: #1f252c; --ink: #e8ecef; --ink-2: #b3bcc5; --muted: #85909b; --line: #2c343d;
     --accent: #ff8b3d; --accent-ink: #1a0d03; --accent-soft: #3a2415;
+    --t-top: #ffb27a; --t-side: #ff8b3d; --t-end: #c9631f; --c-top: #8a96a2; --c-side: #66727e; --c-front: #48525c; --glass: #7fb3cf; --tire: #0b0d10; --hub: #c3ccd4; --shadow: rgba(0, 0, 0, .45);
     --good: #5ccb86; --good-soft: #142e1e; --warn: #f2b44c; --warn-soft: #332611; --bad: #ff7b71; --bad-soft: #3a1815;
     color-scheme: dark;
   }
@@ -44,6 +46,7 @@
 :root[data-theme="dark"] {
   --bg: #101317; --surface: #191e24; --surface-2: #1f252c; --ink: #e8ecef; --ink-2: #b3bcc5; --muted: #85909b; --line: #2c343d;
   --accent: #ff8b3d; --accent-ink: #1a0d03; --accent-soft: #3a2415;
+    --t-top: #ffb27a; --t-side: #ff8b3d; --t-end: #c9631f; --c-top: #8a96a2; --c-side: #66727e; --c-front: #48525c; --glass: #7fb3cf; --tire: #0b0d10; --hub: #c3ccd4; --shadow: rgba(0, 0, 0, .45);
   --good: #5ccb86; --good-soft: #142e1e; --warn: #f2b44c; --warn-soft: #332611; --bad: #ff7b71; --bad-soft: #3a1815;
   color-scheme: dark;
 }
@@ -61,7 +64,13 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 700; text-wrap: balance
 /* hlavička */
 header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-block: 24px 16px; }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand .mark { width: 52px; height: 44px; flex: 0 0 auto; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font: 700 16px/1 var(--f-display); letter-spacing: 0; }
+.brand .mark { width: 64px; height: 48px; flex: 0 0 auto; display: block; }
+.brand .mark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+@media (prefers-reduced-motion: no-preference) {
+  .brand .mark .wheel { transform-box: fill-box; transform-origin: center; }
+  .brand:hover .mark .truck { animation: truck-roll .6s ease-in-out; }
+  @keyframes truck-roll { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+}
 .brand h1 { font-size: 30px; line-height: 1; }
 .brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
 nav.tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px; flex-wrap: wrap; }
@@ -270,9 +279,31 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <div class="mark">€/km</div>
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 64 48">
+          <ellipse cx="33" cy="41" rx="29" ry="3.2" fill="var(--shadow)"/>
+          <g class="truck">
+            <!-- náves: vrch, bok, zadné čelo -->
+            <polygon points="4,14 36,14 44,9 12,9" fill="var(--t-top)"/>
+            <polygon points="4,14 36,14 36,34 4,34" fill="var(--t-side)"/>
+            <polygon points="36,14 44,9 44,29 36,34" fill="var(--t-end)"/>
+            <line x1="6" y1="31" x2="34" y2="31" stroke="var(--t-end)" stroke-width="1.2"/>
+            <!-- kabína -->
+            <polygon points="37,20 47,20 55,15 45,15" fill="var(--c-top)"/>
+            <polygon points="37,20 47,20 52,26 52,34 37,34" fill="var(--c-side)"/>
+            <polygon points="47,20 55,15 60,21 52,26" fill="var(--glass)"/>
+            <polygon points="52,26 60,21 60,29 52,34" fill="var(--c-front)"/>
+            <polygon points="40,22 46,22 49,26 40,26" fill="var(--glass)"/>
+            <polygon points="53,30.5 56,28.6 56,30.4 53,32.3" fill="var(--t-top)"/>
+            <!-- kolesá -->
+            <g class="wheel"><circle cx="11" cy="35" r="4.4" fill="var(--tire)"/><circle cx="11" cy="35" r="1.7" fill="var(--hub)"/></g>
+            <g class="wheel"><circle cx="21" cy="35" r="4.4" fill="var(--tire)"/><circle cx="21" cy="35" r="1.7" fill="var(--hub)"/></g>
+            <g class="wheel"><circle cx="46" cy="35" r="4.4" fill="var(--tire)"/><circle cx="46" cy="35" r="1.7" fill="var(--hub)"/></g>
+          </g>
+        </svg>
+      </div>
       <div>
-        <h1>Kilometrovník dopravcu</h1>
+        <h1>Drivee</h1>
         <p>Koľko ťa stojí kilometer a či sa ponuka z burzy oplatí</p>
       </div>
     </div>

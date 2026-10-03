@@ -1,5 +1,5 @@
 // =====================================================================
-//  Kilometrovník dopravcu – dotazy Power Query pre Power BI Desktop
+//  Drivee – dotazy Power Query pre Power BI Desktop
 //  Každý blok nižšie vlož ako SAMOSTATNÝ prázdny dotaz
 //  (Domov → Transformovať údaje → Nový zdroj → Prázdny dotaz → Rozšírený editor).
 //  Názov dotazu nastav presne podľa riadku "NÁZOV DOTAZU".
