@@ -1134,13 +1134,29 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     },
   };
 
-  function downloadFile(name, text) {
+  // Na claude.ai ide sťahovanie cez schvaľovacie okno (capability "downloads"), v počítači cez bežný odkaz.
+  let dlCap;
+  const getDl = () => (dlCap !== undefined ? Promise.resolve(dlCap)
+    : (window.claude && typeof window.claude.use === 'function'
+      ? window.claude.use('downloads').then(d => (dlCap = d), () => (dlCap = null))
+      : Promise.resolve(dlCap = null)));
+  async function downloadFile(name, text) {
+    const dl = await getDl();
+    if (dl) {
+      try { await dl.save({ filename: name, data: '\ufeff' + text }); toast(`${name} uložený`); return true; }
+      catch (e) {
+        if (e && e.code === 'declined') return false;
+        if (e && e.code === 'rate_limited') { toast('Najprv dokonči predchádzajúce sťahovanie'); return false; }
+        toast('Súbor sa nepodarilo stiahnuť – použi Kopírovať'); return false;
+      }
+    }
     try {
       const url = URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' }));
       const a = document.createElement('a');
       a.href = url; a.download = name; document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
-    } catch (e) { toast('Súbor sa nepodarilo stiahnuť – použi Kopírovať'); }
+      return true;
+    } catch (e) { toast('Súbor sa nepodarilo stiahnuť – použi Kopírovať'); return false; }
   }
   function copyText(name, text, holder) {
     const fallback = () => {
@@ -1191,11 +1207,16 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         <button class="btn" id="dlAll">Stiahnuť všetky 3 súbory</button>
         ${state.offers.length ? '' : '<button class="btn" id="loadSample2">Načítať ukážkové jazdy</button>'}
       </div>
-      <p class="hint" style="margin:12px 0 0;max-width:75ch">Ak sa po kliknutí na Stiahnuť nič nestiahne (napríklad keď appku otváraš cez odkaz na claude.ai), použi <b>Kopírovať</b>, vlož text do Poznámkového bloku a ulož ho s rovnakým názvom súboru v kódovaní UTF-8. Keď appku otvoríš zo súboru <span class="num">index.html</span> v počítači, sťahovanie funguje normálne.</p>`;
+      <p class="hint" style="margin:12px 0 0;max-width:75ch">Na claude.ai sa pred stiahnutím zobrazí potvrdzovacie okno, každý súbor potvrď. Ak sa nič nestiahne, použi <b>Kopírovať</b>, vlož text do Poznámkového bloku a ulož ho s rovnakým názvom súboru v kódovaní UTF-8.</p>`;
 
     p.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => downloadFile(b.dataset.dl, EXPORTS[b.dataset.dl].build())));
     p.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', () => copyText(b.dataset.cp, EXPORTS[b.dataset.cp].build(), p.querySelector(`[data-holder="${b.dataset.cp}"]`))));
-    $('#dlAll').addEventListener('click', () => Object.keys(EXPORTS).forEach((n, i) => setTimeout(() => downloadFile(n, EXPORTS[n].build()), i * 400)));
+    $('#dlAll').addEventListener('click', async () => {
+      for (const n of Object.keys(EXPORTS)) {
+        if (!(await downloadFile(n, EXPORTS[n].build()))) break;
+        await new Promise(r => setTimeout(r, 400));
+      }
+    });
     const ls = $('#loadSample2'); if (ls) ls.addEventListener('click', loadSample);
   }
 
