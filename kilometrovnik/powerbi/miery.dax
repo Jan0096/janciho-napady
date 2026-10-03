@@ -39,6 +39,23 @@ Km spolu = SUM ( Jazdy[km_spolu] )
 Km naprázdno % = DIVIDE ( SUM ( Jazdy[km_prazdne] ), [Km spolu] )
 // formát: Percento
 
+// Prázdne jazdy = samostatné presuny bez nákladu (typ = "prazdna").
+// Km naprázdno % už zahŕňa aj ich km.
+Počet jázd s nákladom = CALCULATE ( COUNTROWS ( Jazdy ), Jazdy[typ] <> "prazdna" )
+
+Prázdne jazdy – počet = CALCULATE ( COUNTROWS ( Jazdy ), Jazdy[typ] = "prazdna" )
+
+Prázdne jazdy – km = CALCULATE ( SUM ( Jazdy[km_prazdne] ), Jazdy[typ] = "prazdna" )
+
+Prázdne jazdy – náklady = CALCULATE ( [Náklady], Jazdy[typ] = "prazdna" )
+
+Náklady na prázdne km (odhad) =
+[Prázdne jazdy – náklady]
+    + SUMX (
+        FILTER ( Jazdy, Jazdy[typ] <> "prazdna" && Jazdy[km_spolu] > 0 ),
+        Jazdy[variabilne_naklady] * DIVIDE ( Jazdy[km_prazdne], Jazdy[km_spolu] )
+    )
+
 Dni na ceste = SUM ( Jazdy[dni] )
 
 Zisk na deň = DIVIDE ( [Zisk], [Dni na ceste] )

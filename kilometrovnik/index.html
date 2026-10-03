@@ -171,11 +171,18 @@ table.list td.r, table.list th.r { text-align: right; font-family: var(--f-num);
 table.list th.r { font-family: var(--f-body); }
 table.list tr.best td { background: var(--good-soft); }
 .scroll { overflow-x: auto; }
-.pill { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 99px; display: inline-flex; align-items: center; gap: 5px; }
+.pill { white-space: nowrap; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 99px; display: inline-flex; align-items: center; gap: 5px; }
 .pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .pill.good { background: var(--good-soft); color: var(--good); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.idle { background: var(--surface-2); color: var(--ink-2); border: 1px dashed var(--muted); }
+tr.emptyrun td { background: var(--surface-2); }
+.modeseg { margin-bottom: 16px; }
+.kmsum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 640px) { .kmsum { grid-template-columns: minmax(0, 1fr); } }
+.kmbar { grid-column: 1 / -1; display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+.kmbar span { display: block; height: 100%; }
 .pos { color: var(--good); } .neg { color: var(--bad); }
 .empty { text-align: center; padding: 36px 16px; color: var(--ink-2); }
 .empty h3 { font-size: 22px; color: var(--ink); margin-bottom: 6px; }
@@ -310,7 +317,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="vozidla" id="tab-vozidla">1. Náklady vozidla</button>
       <button role="tab" data-tab="jazda" id="tab-jazda">2. Ocenenie jazdy</button>
-      <button role="tab" data-tab="ponuky" id="tab-ponuky">3. Porovnanie ponúk<span class="count" id="offerCount"></span></button>
+      <button role="tab" data-tab="ponuky" id="tab-ponuky">3. Jazdy a ponuky<span class="count" id="offerCount"></span></button>
       <button role="tab" data-tab="firmy" id="tab-firmy">4. Firmy</button>
       <button role="tab" data-tab="powerbi" id="tab-powerbi">5. Financie a Power BI</button>
       <button role="tab" data-tab="faktury" id="tab-faktury">6. Nákladové faktúry<span class="count" id="invCount"></span></button>
@@ -354,6 +361,11 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   <!-- ZÁLOŽKA 2: OCENENIE JAZDY -->
   <section id="view-jazda" class="grid" hidden>
     <div class="panel">
+      <div class="seg tall modeseg" role="group" aria-label="Typ zápisu">
+        <button type="button" data-mode="ponuka">Jazda s nákladom</button>
+        <button type="button" data-mode="prazdna">Prázdna jazda</button>
+      </div>
+      <div id="offerMode">
       <form id="tripForm" autocomplete="off">
         <fieldset>
           <legend><h3>Ponuka</h3><span>napr. z burzy prepráv</span></legend>
@@ -428,6 +440,65 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       <div class="toolbar" style="margin:0">
         <button class="btn primary" id="saveOffer">Uložiť do porovnania</button>
         <button class="btn" id="newTrip">Nová ponuka</button>
+      </div>
+      </div>
+      <div id="emptyMode" hidden>
+        <form id="emptyForm" autocomplete="off">
+          <fieldset>
+            <legend><h3>Prázdna jazda</h3><span>presun bez nákladu, bez tržby</span></legend>
+            <div class="fields">
+              <div class="field">
+                <label class="lbl" for="e-duvod">Dôvod</label>
+                <select id="e-duvod" data-e="duvod">
+                  <option>Pristavenie na nakládku</option>
+                  <option>Návrat domov</option>
+                  <option>Presun medzi zákazkami</option>
+                  <option>Cesta na servis / STK</option>
+                  <option>Iné</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="lbl" for="e-trasa">Odkiaľ → kam</label>
+                <input type="text" id="e-trasa" data-e="trasa" placeholder="napr. Mníchov → Žilina">
+              </div>
+              <div class="field">
+                <label class="lbl" for="e-datum">Dátum</label>
+                <input type="date" id="e-datum" data-e="datum">
+              </div>
+              <div class="field">
+                <label class="lbl" for="e-veh">Vozidlo</label>
+                <select id="e-veh" data-e="vehId"></select>
+              </div>
+              <div class="field">
+                <label class="lbl" for="e-km">Km naprázdno</label>
+                <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="e-km" data-e="km"><span class="unit">km</span></div>
+              </div>
+              <div class="field">
+                <label class="lbl" for="e-dni">Počet dní</label>
+                <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="e-dni" data-e="dni"><span class="unit">dni</span></div>
+                <div class="hint" id="eDniHint"></div>
+              </div>
+              <div class="field">
+                <label class="lbl" for="e-myto">Mýto</label>
+                <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="e-myto" data-e="myto"><span class="unit">€</span></div>
+              </div>
+              <div class="field">
+                <label class="lbl" for="e-ine">Iné náklady</label>
+                <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="e-ine" data-e="ine"><span class="unit">€</span></div>
+              </div>
+              <div class="field" style="grid-column: 1 / -1">
+                <label class="lbl" for="e-firma">Priradiť k firme (nepovinné)</label>
+                <input type="text" id="e-firma" data-e="firma" list="firmyList2" placeholder="kvôli ktorej zákazke si išiel naprázdno">
+                <datalist id="firmyList2"></datalist>
+                <div class="hint">Keď prázdnu jazdu priradíš firme, jej náklady sa započítajú do vyhodnotenia tejto firmy.</div>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+        <div class="toolbar" style="margin:0">
+          <button class="btn primary" id="saveEmpty">Zapísať prázdnu jazdu</button>
+          <button class="btn" id="newEmpty">Vyčistiť</button>
+        </div>
       </div>
     </div>
     <aside class="stack sticky">
@@ -512,12 +583,13 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   const uid = () => Math.random().toString(36).slice(2, 10);
   const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const blankEmpty = (vehId) => ({ duvod: 'Pristavenie na nakládku', trasa: '', datum: today(), vehId, km: '', dni: '', myto: '', ine: '', firma: '' });
   const blankTrip = (vehId) => ({ datum: today(), firma: '', splatnost: '', trasa: '', vehId, cena: '', cenaTyp: 'spolu', km: '', prazdne: '', dni: '', myto: '', ine: '' });
 
   function defaultState() {
     const v = Object.assign({ id: uid(), example: true }, PRESETS.tahac, { name: 'Ťahač 01 (príklad)' });
     return {
-      vehicles: [v], activeId: v.id, tab: 'vozidla', offers: [], invoices: [], supplierRules: {}, invMonth: 'all', invVeh: 'all', invOnlyNone: false, firmFilter: 'vsetky', firmMetric: 'ziskDen',
+      vehicles: [v], activeId: v.id, tab: 'vozidla', tripMode: 'ponuka', empty: blankEmpty(v.id), offers: [], invoices: [], supplierRules: {}, invMonth: 'all', invVeh: 'all', invOnlyNone: false, firmFilter: 'vsetky', firmMetric: 'ziskDen',
       trip: { datum: today(), firma: 'Zákazník A (príklad)', splatnost: '30', trasa: 'Žilina → Mníchov (príklad)', vehId: v.id, cena: '1050', cenaTyp: 'spolu', km: '620', prazdne: '80', dni: '', myto: '165', ine: '0' },
     };
   }
@@ -533,6 +605,8 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       s.supplierRules = s.supplierRules && typeof s.supplierRules === 'object' ? s.supplierRules : {};
       s.offers.forEach(o => { if (o.firma == null) o.firma = ''; if (!o.stav) o.stav = 'ponuka'; if (o.zaplatena == null) o.zaplatena = false; });
       s.trip = Object.assign(blankTrip(s.vehicles[0].id), s.trip || {});
+      s.empty = Object.assign(blankEmpty(s.vehicles[0].id), s.empty || {});
+      if (s.tripMode !== 'prazdna') s.tripMode = 'ponuka';
       if (!s.vehicles.some(v => v.id === s.activeId)) s.activeId = s.vehicles[0].id;
       return s;
     } catch (e) { return null; }
@@ -635,7 +709,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     state.tab = tab; save();
     document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
     ['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
-    if (tab === 'jazda') renderTrip(true);
+    if (tab === 'jazda') renderJazda(true);
     if (tab === 'ponuky') renderOffers();
     if (tab === 'vozidla') renderVehicle(true);
     if (tab === 'firmy') renderFirms();
@@ -949,31 +1023,139 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     return [...seen.values()].sort((a, b) => a.localeCompare(b, 'sk'));
   }
 
+  // ---------- Prázdne jazdy ----------
+  function calcEmpty(e) {
+    const v = vehById(e.vehId); const c = calc(v);
+    const km = num(e.km);
+    const autoDni = km > 0 ? Math.max(0.5, Math.ceil(km / c.kmDen * 2) / 2) : 0;
+    const dni = String(e.dni).trim() !== '' ? num(e.dni) : autoDni;
+    const varCost = c.varKm * km, fixCost = c.fixDen * dni, dietaCost = c.dieta * dni, myto = num(e.myto), ine = num(e.ine);
+    const naklady = varCost + fixCost + dietaCost + myto + ine;
+    return { v, c, km, autoDni, dni, varCost, fixCost, dietaCost, myto, ine, naklady, nakladKm: km > 0 ? naklady / km : 0 };
+  }
+  function renderJazda(full) {
+    const m = state.tripMode === 'prazdna' ? 'prazdna' : 'ponuka';
+    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m ? 'true' : 'false'));
+    $('#offerMode').hidden = m !== 'ponuka'; $('#emptyMode').hidden = m !== 'prazdna';
+    if (m === 'ponuka') renderTrip(full); else renderEmpty(full);
+  }
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { state.tripMode = b.dataset.mode; save(); renderJazda(true); }));
+
+  function renderEmpty(full) {
+    const e = state.empty;
+    if (!state.vehicles.some(v => v.id === e.vehId)) e.vehId = state.vehicles[0].id;
+    if (full) {
+      $('#e-veh').innerHTML = vehOptions(e.vehId);
+      $('#firmyList2').innerHTML = firmNames().map(n => `<option value="${esc(n)}"></option>`).join('');
+      document.querySelectorAll('#emptyForm [data-e]').forEach(el => { if (el.id !== 'e-veh') el.value = e[el.dataset.e] ?? ''; });
+    }
+    const r = calcEmpty(e);
+    $('#e-dni').placeholder = r.autoDni ? fmt(r.autoDni, 1) : '';
+    $('#eDniHint').textContent = r.autoDni ? `Prázdne = automaticky ${fmt(r.autoDni, 1)} d (${fmt(r.c.kmDen)} km/deň)` : 'Prázdne = vypočíta sa z km';
+    const rec = r.c.totalKm * (1 + r.c.zisk / 100);
+    $('#tripResults').innerHTML = `
+      <div class="verdict none"><div class="t"><i></i>Prázdna jazda</div><p>${r.km > 0 ? 'Táto jazda nič nezarobí. Jej náklady musia zaplatiť ostatné jazdy.' : 'Zadaj, koľko km si išiel naprázdno.'}</p></div>
+      <div class="kpi-head"><span class="eyebrow">Náklady prázdnej jazdy</span><span class="chip">${esc(r.v.name || 'Vozidlo')}</span></div>
+      <div class="big ${r.km > 0 ? 'neg' : ''}">${r.km > 0 ? '−' + fmt(r.naklady) : '—'} <small>€</small></div>
+      <div class="kpis">
+        <div><div class="v">${fmt(r.km)}</div><div class="k">km naprázdno</div></div>
+        <div><div class="v">${fmt(r.nakladKm, 2)}</div><div class="k">náklad €/km</div></div>
+        <div><div class="v">${fmt(r.dni, 1)}</div><div class="k">dní</div></div>
+      </div>
+      ${r.km > 0 ? `<p class="note" style="margin:12px 0 0">Aby si tieto náklady pokryl, potrebuješ pri ďalších jazdách zarobiť navyše <b>${eur(r.naklady)}</b>. To je tržba za približne <b>${fmt(r.naklady / rec)} km</b> s nákladom pri odporúčanej cene ${fmt(rec, 2)} €/km.</p>` : ''}
+      <div class="section-title"><h3>Rozpis nákladov</h3><span>€</span></div>
+      <div class="bars">
+        ${[
+          ['Nafta, AdBlue, pneu, servis', r.varCost, `${fmt(r.km)} km × ${fmt(r.c.varKm, 3)} €`, 'var'],
+          ['Fixné náklady auta', r.fixCost, `${fmt(r.dni, 1)} d × ${eur(r.c.fixDen)}`, 'fix'],
+          ['Diéty vodiča', r.dietaCost, `${fmt(r.dni, 1)} d × ${eur(r.c.dieta)}`, 'fix'],
+          ['Mýto', r.myto, '', 'var'],
+          ['Iné', r.ine, '', 'var'],
+        ].filter(x => x[1] > 0).map(([n, x, d, kind]) => `
+          <div class="bar">
+            <div class="name">${n}${d ? `<em>${d}</em>` : ''}</div>
+            <div class="val">${eur(x)}</div>
+            <div class="track"><div class="fill${kind === 'fix' ? ' fix' : ''}" style="width:${r.naklady > 0 ? (x / r.naklady * 100).toFixed(1) : 0}%"></div></div>
+          </div>`).join('')}
+      </div>`;
+  }
+  $('#emptyForm').addEventListener('input', (ev) => { const k = ev.target.dataset.e; if (!k || k === 'vehId') return; state.empty[k] = ev.target.value; save(); renderEmpty(false); });
+  $('#emptyForm').addEventListener('change', (ev) => {
+    if (ev.target.id === 'e-veh') { state.empty.vehId = ev.target.value; state.empty.dni = ''; $('#e-dni').value = ''; save(); renderEmpty(false); }
+    else if (ev.target.id === 'e-duvod') { state.empty.duvod = ev.target.value; save(); }
+  });
+  $('#emptyForm').addEventListener('submit', (ev) => ev.preventDefault());
+  $('#newEmpty').addEventListener('click', () => { state.empty = blankEmpty(state.empty.vehId); save(); renderEmpty(true); });
+  function makeEmptyRun(e, r) {
+    return {
+      id: uid(), typ: 'prazdna', duvod: e.duvod || 'Iné', firma: String(e.firma || '').trim(),
+      trasa: e.trasa || e.duvod || 'Prázdna jazda', vozidlo: r.v.name || '', vozidloId: r.v.id,
+      km: 0, prazdne: r.km, kmTotal: r.km, dni: r.dni, naklady: r.naklady, cena: 0, zisk: -r.naklady, ziskPct: -100,
+      ziskDen: r.dni > 0 ? -r.naklady / r.dni : -r.naklady, cenaKm: 0, verdict: 'empty', ciel: r.c.zisk,
+      splatnost: null, stav: 'prevzata', datum: e.datum || today(), myto: r.myto, ine: r.ine,
+      varCost: r.varCost, fixCost: r.fixCost, dietaCost: r.dietaCost, zaplatena: false,
+    };
+  }
+  $('#saveEmpty').addEventListener('click', () => {
+    const r = calcEmpty(state.empty);
+    if (!(r.km > 0)) { toast('Zadaj km naprázdno'); return; }
+    state.offers.push(makeEmptyRun(state.empty, r));
+    const vehId = state.empty.vehId;
+    state.empty = blankEmpty(vehId); save(); updateCount(); renderEmpty(true);
+    toast(`Prázdna jazda zapísaná (−${eur(r.naklady)})`);
+  });
+  const isEmpty = (o) => o.typ === 'prazdna';
+
   // ---------- Záložka 3: porovnanie ----------
   function updateCount() { $('#offerCount').textContent = state.offers.length ? '(' + state.offers.length + ')' : ''; }
+  function kmSummaryHtml() {
+    const done = state.offers.filter(o => o.stav === 'prevzata');
+    if (!done.length) return '';
+    const loaded = done.reduce((a, o) => a + (o.km || 0), 0);
+    const emptyIn = done.filter(o => !isEmpty(o)).reduce((a, o) => a + (o.prazdne ?? (o.kmTotal - o.km) ?? 0), 0);
+    const emptyRuns = done.filter(isEmpty);
+    const emptyRunKm = emptyRuns.reduce((a, o) => a + o.kmTotal, 0);
+    const total = loaded + emptyIn + emptyRunKm;
+    const pct = total ? (emptyIn + emptyRunKm) / total * 100 : 0;
+    const costIn = done.filter(o => !isEmpty(o)).reduce((a, o) => a + (o.varCost != null && o.kmTotal ? o.varCost * (o.prazdne ?? 0) / o.kmTotal : 0), 0);
+    const costRuns = emptyRuns.reduce((a, o) => a + o.naklady, 0);
+    const w = (x) => total ? (x / total * 100).toFixed(2) : 0;
+    return `<div class="section-title" style="margin-top:0"><h3>Kilometre zo zrealizovaných jázd</h3><span>${done.length} jázd</span></div>
+      <div class="kmsum">
+        <div class="tile"><div class="k">S nákladom</div><div class="name num">${fmt(loaded)} km</div><div class="v">${fmt(total ? loaded / total * 100 : 0)} % všetkých km</div></div>
+        <div class="tile ${pct > 20 ? 'bad' : ''}"><div class="k">${pct > 20 ? '<i></i>' : ''}Naprázdno spolu</div><div class="name num">${fmt(emptyIn + emptyRunKm)} km</div><div class="v">${fmt(pct, 1)} % všetkých km</div><div class="hint" style="margin-top:4px">${fmt(emptyIn)} km v rámci jázd · ${fmt(emptyRunKm)} km v ${emptyRuns.length} prázdnych jazdách</div></div>
+        <div class="tile"><div class="k">Náklady na prázdne km</div><div class="name num">${eur(costIn + costRuns)}</div><div class="v">${total ? fmt((costIn + costRuns) / Math.max(1, emptyIn + emptyRunKm), 2) + ' €/km' : ''}</div><div class="hint" style="margin-top:4px">prázdne jazdy ${eur(costRuns)} · prázdne km v jazdách ${eur(costIn)} (palivo, pneu, servis)</div></div>
+        <div class="kmbar" title="S nákladom ${fmt(loaded)} km · naprázdno v jazdách ${fmt(emptyIn)} km · prázdne jazdy ${fmt(emptyRunKm)} km">
+          <span style="width:${w(loaded)}%;background:var(--accent)"></span><span style="width:${w(emptyIn)}%;background:var(--ink-2)"></span><span style="width:${w(emptyRunKm)}%;background:var(--muted)"></span>
+        </div>
+        <div class="legend" style="grid-column:1/-1;margin:0"><span><i style="background:var(--accent)"></i>s nákladom</span><span><i style="background:var(--ink-2)"></i>naprázdno v rámci jazdy</span><span><i style="background:var(--muted)"></i>samostatné prázdne jazdy</span></div>
+      </div>
+      <div class="toolbar"><button class="btn small" id="goEmpty">+ Zapísať prázdnu jazdu</button></div>`;
+  }
   function renderOffers() {
     const p = $('#offersPanel');
     if (!state.offers.length) {
-      p.innerHTML = `<div class="empty"><h3>Zatiaľ žiadne ponuky</h3><p>V záložke <b>Ocenenie jazdy</b> zadaj ponuku z burzy a klikni <b>Uložiť do porovnania</b>. Tu ich uvidíš zoradené podľa zisku za deň.</p>
-        <button class="btn primary" id="goTrip">Oceniť jazdu</button></div>`;
-      $('#goTrip').addEventListener('click', () => setTab('jazda'));
+      p.innerHTML = `<div class="empty"><h3>Zatiaľ žiadne jazdy</h3><p>V záložke <b>Ocenenie jazdy</b> zadaj ponuku z burzy a klikni <b>Uložiť do porovnania</b>, alebo zapíš <b>prázdnu jazdu</b>. Tu ich uvidíš zoradené podľa zisku za deň.</p>
+        <div class="toolbar" style="justify-content:center"><button class="btn primary" id="goTrip">Oceniť jazdu</button><button class="btn" id="goEmpty0">Zapísať prázdnu jazdu</button></div></div>`;
+      $('#goTrip').addEventListener('click', () => { state.tripMode = 'ponuka'; setTab('jazda'); });
+      $('#goEmpty0').addEventListener('click', () => { state.tripMode = 'prazdna'; save(); setTab('jazda'); });
       return;
     }
     const rows = state.offers.slice().sort((a, b) => b.ziskDen - a.ziskDen);
-    const label = { good: 'Oplatí sa', warn: 'Hraničné', bad: 'Neoplatí sa' };
-    p.innerHTML = `<div class="section-title" style="margin-top:0"><h3>Porovnanie ponúk</h3><span>zoradené podľa zisku za deň, najlepšia hore</span></div>
+    const label = { good: 'Oplatí sa', warn: 'Hraničné', bad: 'Neoplatí sa', empty: 'Prázdna' };
+    p.innerHTML = kmSummaryHtml() + `<div class="section-title"><h3>Jazdy a ponuky</h3><span>zoradené podľa zisku za deň, najlepšia hore</span></div>
       <div class="scroll"><table class="list">
         <thead><tr><th>Dátum</th><th>Firma</th><th>Trasa</th><th>Vozidlo</th><th class="r">Km spolu</th><th class="r">Dni</th><th class="r">Náklady</th><th class="r">Cena</th><th class="r">Zisk</th><th class="r">Zisk/deň</th><th class="r">€/km</th><th>Hodnotenie</th><th>Stav</th><th></th></tr></thead>
         <tbody>${rows.map((o, i) => `
-          <tr class="${i === 0 && o.zisk > 0 ? 'best' : ''}">
-            <td class="num" style="font-size:13px">${esc(fmtDate(o.datum))}</td><td><b>${esc(o.firma || '—')}</b></td><td>${esc(o.trasa)}</td><td>${esc(o.vozidlo)}</td>
+          <tr class="${isEmpty(o) ? 'emptyrun' : i === 0 && o.zisk > 0 ? 'best' : ''}">
+            <td class="num" style="font-size:13px">${esc(fmtDate(o.datum))}</td><td><b>${esc(o.firma || '—')}</b></td><td>${esc(o.trasa)}${isEmpty(o) && o.duvod && o.duvod !== o.trasa ? `<div class="hint" style="margin:0">${esc(o.duvod)}</div>` : ''}</td><td>${esc(o.vozidlo)}</td>
             <td class="r">${fmt(o.kmTotal)}</td><td class="r">${fmt(o.dni, 1)}</td>
-            <td class="r">${eur(o.naklady)}</td><td class="r">${eur(o.cena)}</td>
+            <td class="r">${eur(o.naklady)}</td><td class="r">${isEmpty(o) ? '—' : eur(o.cena)}</td>
             <td class="r ${o.zisk >= 0 ? 'pos' : 'neg'}">${eur(o.zisk)}</td>
             <td class="r ${o.ziskDen >= 0 ? 'pos' : 'neg'}"><b>${eur(o.ziskDen)}</b></td>
-            <td class="r">${fmt(o.cenaKm, 2)}</td>
-            <td><span class="pill ${o.verdict}"><i></i>${label[o.verdict] || ''}</span></td>
-            <td><div style="display:grid;gap:4px"><label class="check"><input type="checkbox" data-stav="${o.id}"${o.stav === 'prevzata' ? ' checked' : ''}> Zrealizovaná</label><label class="check"><input type="checkbox" data-paid="${o.id}"${o.zaplatena ? ' checked' : ''}> Zaplatená</label></div></td>
+            <td class="r">${isEmpty(o) ? '—' : fmt(o.cenaKm, 2)}</td>
+            <td><span class="pill ${o.verdict === 'empty' ? 'idle' : o.verdict}"><i></i>${label[o.verdict] || ''}</span></td>
+            <td>${isEmpty(o) ? '<span class="hint">zapísaná</span>' : `<div style="display:grid;gap:4px"><label class="check"><input type="checkbox" data-stav="${o.id}"${o.stav === 'prevzata' ? ' checked' : ''}> Zrealizovaná</label><label class="check"><input type="checkbox" data-paid="${o.id}"${o.zaplatena ? ' checked' : ''}> Zaplatená</label></div>`}</td>
             <td><button class="btn small" data-del="${o.id}" aria-label="Odstrániť ponuku">Odstrániť</button></td>
           </tr>`).join('')}</tbody>
       </table></div>
@@ -984,6 +1166,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     p.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
       state.offers = state.offers.filter(o => o.id !== b.dataset.del); save(); updateCount(); renderOffers();
     }));
+    const ge = $('#goEmpty'); if (ge) ge.addEventListener('click', () => { state.tripMode = 'prazdna'; save(); setTab('jazda'); });
     p.querySelectorAll('[data-stav]').forEach(c => c.addEventListener('change', () => {
       const o = state.offers.find(x => x.id === c.dataset.stav); if (o) { o.stav = c.checked ? 'prevzata' : 'ponuka'; save(); }
     }));
@@ -1027,7 +1210,12 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       o.zaplatena = paid;
       state.offers.push(o);
     });
-    save(); updateCount(); if (state.tab === 'powerbi') renderPbi(); else renderFirms(); toast('Ukážkové jazdy načítané – zmažeš ich v záložke Porovnanie ponúk');
+    [['Návrat domov', 'Varšava → Košice', 600, 'Zákazník C (príklad)', 118, 40], ['Pristavenie na nakládku', 'Žilina → Bratislava', 200, '', 82, 30]]
+      .forEach(([duvod, trasa, km, firma, ago, myto]) => {
+        const e = Object.assign(blankEmpty(vehId), { duvod, trasa, km, firma, myto, datum: addDays(today(), -ago) });
+        state.offers.push(makeEmptyRun(e, calcEmpty(e)));
+      });
+    save(); updateCount(); if (state.tab === 'powerbi') renderPbi(); else renderFirms(); toast('Ukážkové jazdy načítané – zmažeš ich v záložke Jazdy a ponuky');
   }
 
   function firmStats(offers) {
@@ -1065,7 +1253,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       return;
     }
     const M = METRICS[state.firmMetric];
-    const src = state.firmFilter === 'prevzate' ? state.offers.filter(o => o.stav === 'prevzata') : state.offers;
+    const src = (state.firmFilter === 'prevzate' ? state.offers.filter(o => o.stav === 'prevzata') : state.offers).filter(o => !isEmpty(o) || String(o.firma || '').trim());
     const stats = firmStats(src).sort((a, b) => M.f(b) - M.f(a));
     const segF = [['vsetky', 'Všetky jazdy'], ['prevzate', 'Len zrealizované']].map(([k, l]) => `<button type="button" data-ff="${k}" aria-pressed="${state.firmFilter === k}">${l}</button>`).join('');
     const segM = Object.entries(METRICS).map(([k, m]) => `<button type="button" data-fm="${k}" aria-pressed="${state.firmMetric === k}">${m.label}</button>`).join('');
@@ -1075,7 +1263,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         <div class="seg tall">${segM}</div>
       </div>`;
     if (!stats.length) {
-      p.innerHTML = head + `<p class="note">Zatiaľ nemáš žiadnu jazdu označenú ako <b>Zrealizovaná</b>. Označíš ju v záložke Porovnanie ponúk.</p>`;
+      p.innerHTML = head + `<p class="note">Zatiaľ nemáš žiadnu jazdu označenú ako <b>Zrealizovaná</b>. Označíš ju v záložke Jazdy a ponuky.</p>`;
       bindFirmControls(); return;
     }
     const best = stats[0], worst = stats[stats.length - 1];
@@ -1189,11 +1377,11 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       build: () => csv(
         ['id', 'datum', 'firma', 'trasa', 'vozidlo_id', 'vozidlo', 'stav', 'zaplatena', 'km_naklad', 'km_prazdne', 'km_spolu', 'dni',
           'trzba', 'naklady', 'variabilne_naklady', 'fixne_naklady', 'diety', 'myto', 'ine_naklady', 'zisk', 'marza_pct', 'zisk_den',
-          'splatnost_dni', 'datum_splatnosti'],
+          'splatnost_dni', 'datum_splatnosti', 'typ', 'dovod'],
         state.offers.map(o => [o.id, o.datum || '', firmOf(o), o.trasa, vehIdOf(o), o.vozidlo, o.stav === 'prevzata' ? 'zrealizovana' : 'ponuka',
           o.zaplatena ? 1 : 0, o.km, o.prazdne ?? (o.kmTotal - o.km), o.kmTotal, o.dni,
           o.cena, o.naklady, o.varCost, o.fixCost, o.dietaCost, o.myto, o.ine, o.zisk, o.ziskPct, o.ziskDen,
-          o.splatnost, dueOf(o)])),
+          o.splatnost, dueOf(o), isEmpty(o) ? 'prazdna' : 'naklad', isEmpty(o) ? o.duvod : ''])),
     },
     'firmy.csv': {
       title: 'Firmy', desc: 'Zoznam zákazníkov. V Power BI podľa neho filtruješ a porovnávaš firmy.',
@@ -1266,7 +1454,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     const done = state.offers.filter(o => o.stav === 'prevzata');
     const sum = (arr, f) => arr.reduce((a, o) => a + (f(o) || 0), 0);
     const trzby = sum(done, o => o.cena), zisk = sum(done, o => o.zisk);
-    const unpaid = done.filter(o => !o.zaplatena);
+    const unpaid = done.filter(o => !o.zaplatena && !isEmpty(o));
     const t = today();
     const overdue = unpaid.filter(o => { const d = dueOf(o); return d && d < t; });
     const in30 = unpaid.filter(o => { const d = dueOf(o); return d && d >= t && d <= addDays(t, 30); });
@@ -1280,7 +1468,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         <div class="tile ${overdue.length ? 'bad' : 'good'}"><div class="k"><i></i>Po splatnosti</div><div class="name num">${eur(sum(overdue, o => o.cena))}</div><div class="v">${overdue.length ? overdue.length + ' faktúr · ' + [...new Set(overdue.map(firmOf))].map(esc).join(', ') : 'nič nie je po splatnosti'}</div></div>
         <div class="tile"><div class="k">Fixné náklady flotily</div><div class="name num">${eur(fixMes)}</div><div class="v">mesačne za ${state.vehicles.length} ${state.vehicles.length === 1 ? 'vozidlo' : 'vozidiel'}, bez diét</div></div>
       </div>
-      <p class="hint" style="margin:-6px 0 22px">Úhradu faktúry označíš v záložke <b>Porovnanie ponúk</b> (políčko Zaplatená). Splatnosť sa počíta od dátumu jazdy.</p>
+      <p class="hint" style="margin:-6px 0 22px">Úhradu faktúry označíš v záložke <b>Jazdy a ponuky</b> (políčko Zaplatená). Splatnosť sa počíta od dátumu jazdy.</p>
 
       <div class="section-title"><h3>Export do Power BI</h3><span>${Object.keys(EXPORTS).length} súborov CSV, oddeľovač bodkočiarka, UTF-8</span></div>
       <ol class="steps">

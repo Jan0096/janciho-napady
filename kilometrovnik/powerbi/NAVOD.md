@@ -88,6 +88,11 @@ sumy na **Mena €**.
 - Čiarový graf: os `Kalendar[Mesiac]`, hodnota `Skutočné náklady`, legenda `Kategorie[kategoria]`.
 - Slicery: `Kalendar[Mesiac]`, `Vozidla[nazov]`. Nezaradené faktúry zaraď v appke a exportuj znova.
 
+**Prázdne km**
+- Karty: `Km naprázdno %`, `Prázdne jazdy – km`, `Náklady na prázdne km (odhad)`.
+- Stĺpcový graf: os `Jazdy[dovod]` (filter `Jazdy[typ]` = *prazdna*), hodnota `Prázdne jazdy – náklady`.
+- Čiarový graf: os `Kalendar[Mesiac]`, hodnota `Km naprázdno %`.
+
 ## 6. Aktualizácia
 
 Keď v appke pribudnú jazdy alebo úhrady: znova **Stiahnuť všetky 3 súbory** do toho istého
@@ -105,4 +110,5 @@ priečinka (prepísať) → v Power BI **Domov → Obnoviť**.
 - **Faktúry** sa v appke zaraďujú samé: najprv podľa zapamätaného dodávateľa, potom podľa slov
   v dodávateľovi a popise (nafta, mýto, servis, leasing…). K autu sa priradia podľa ŠPZ v popise.
   **Plán nákladov** pochádza z nastavení vozidla v appke (mesačne), mýto nemá plán, lebo závisí od trás.
+- **Prázdne jazdy** (stĺpec `typ` = `prazdna`) nemajú tržbu, len náklady. Ak sú priradené firme, znížia jej zisk.
 - Všetky sumy sú **bez DPH**.
