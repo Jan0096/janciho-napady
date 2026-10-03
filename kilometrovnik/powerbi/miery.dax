@@ -1,0 +1,147 @@
+// =====================================================================
+//  Kilometrovník dopravcu – DAX pre Power BI Desktop
+//  1) Tabuľku Kalendar vytvoríš cez: Modelovanie → Nová tabuľka
+//  2) Každú mieru cez: Modelovanie → Nová miera (vlož celý riadok "Názov = vzorec")
+//     Miery odporúčame dávať do tabuľky Jazdy.
+// =====================================================================
+
+
+// ------------------------- TABUĽKA KALENDÁR --------------------------
+// Modelovanie → Nová tabuľka. Potom: Nástroje tabuliek → Označiť ako tabuľku dátumov → stĺpec Date.
+
+Kalendar =
+ADDCOLUMNS (
+    CALENDARAUTO (),
+    "Rok", YEAR ( [Date] ),
+    "Mesiac č.", MONTH ( [Date] ),
+    "Mesiac", FORMAT ( [Date], "MM/YYYY" ),
+    "RokMesiac", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+    "Štvrťrok", "Q" & QUARTER ( [Date] ) & " " & YEAR ( [Date] )
+)
+// Tip: stĺpec "Mesiac" zoraď podľa stĺpca "RokMesiac" (Nástroje stĺpcov → Zoradiť podľa stĺpca).
+
+
+// ------------------------- ZÁKLADNÉ MIERY ----------------------------
+
+Počet jázd = COUNTROWS ( Jazdy )
+
+Tržby = SUM ( Jazdy[trzba] )
+
+Náklady = SUM ( Jazdy[naklady] )
+
+Zisk = [Tržby] - [Náklady]
+
+Marža % = DIVIDE ( [Zisk], [Náklady] )
+// formát: Percento
+
+Km spolu = SUM ( Jazdy[km_spolu] )
+
+Km naprázdno % = DIVIDE ( SUM ( Jazdy[km_prazdne] ), [Km spolu] )
+// formát: Percento
+
+Dni na ceste = SUM ( Jazdy[dni] )
+
+Zisk na deň = DIVIDE ( [Zisk], [Dni na ceste] )
+
+Tržba na km = DIVIDE ( [Tržby], [Km spolu] )
+
+Náklad na km = DIVIDE ( [Náklady], [Km spolu] )
+
+
+// ------------------- LEN ZREALIZOVANÉ JAZDY --------------------------
+
+Tržby zrealizované =
+CALCULATE ( [Tržby], Jazdy[stav] = "zrealizovana" )
+
+Zisk zrealizovaný =
+CALCULATE ( [Zisk], Jazdy[stav] = "zrealizovana" )
+
+Marža zrealizovaná % =
+CALCULATE ( [Marža %], Jazdy[stav] = "zrealizovana" )
+
+
+// ------------------- POHĽADÁVKY A CASH FLOW --------------------------
+
+Neuhradené faktúry =
+CALCULATE ( [Tržby], Jazdy[stav] = "zrealizovana", Jazdy[zaplatena] = 0 )
+
+Po splatnosti =
+CALCULATE (
+    [Tržby],
+    Jazdy[stav] = "zrealizovana",
+    Jazdy[zaplatena] = 0,
+    Jazdy[datum_splatnosti] < TODAY ()
+)
+
+Po splatnosti % =
+DIVIDE ( [Po splatnosti], [Neuhradené faktúry] )
+
+Priemerná splatnosť (dni) =
+AVERAGE ( Jazdy[splatnost_dni] )
+
+// Kedy prídu peniaze: zobraz podľa Kalendar[Mesiac] – počíta podľa dátumu SPLATNOSTI.
+// Vyžaduje NEAKTÍVNY vzťah Jazdy[datum_splatnosti] → Kalendar[Date] (pozri NAVOD.md).
+Očakávané príjmy =
+CALCULATE (
+    [Tržby],
+    Jazdy[stav] = "zrealizovana",
+    Jazdy[zaplatena] = 0,
+    USERELATIONSHIP ( Jazdy[datum_splatnosti], Kalendar[Date] )
+)
+
+
+// ---------------- VÝSLEDOK FIRMY VRÁTANE STÁTIA ----------------------
+// Jazdy obsahujú fixné náklady len za dni, keď auto jazdilo.
+// Tieto miery dopočítajú fixné náklady za dni, keď auto stálo.
+
+Počet mesiacov =
+COUNTROWS ( VALUES ( Kalendar[RokMesiac] ) )
+
+Fixné náklady za obdobie =
+SUM ( Vozidla[fixne_mesacne] ) * [Počet mesiacov]
+
+Fixné pokryté jazdami =
+CALCULATE ( SUM ( Jazdy[fixne_naklady] ), Jazdy[stav] = "zrealizovana" )
+
+Náklady na státie =
+MAX ( 0, [Fixné náklady za obdobie] - [Fixné pokryté jazdami] )
+
+Výsledok hospodárenia (odhad) =
+[Zisk zrealizovaný] - [Náklady na státie]
+
+Využitie vozidiel % =
+DIVIDE ( [Fixné pokryté jazdami], [Fixné náklady za obdobie] )
+// formát: Percento. 100 % = auto jazdilo toľko dní, koľko si plánoval v appke.
+
+
+// --------------------- POROVNANIE A HODNOTENIE -----------------------
+
+Zisk minulý mesiac =
+CALCULATE ( [Zisk zrealizovaný], DATEADD ( Kalendar[Date], -1, MONTH ) )
+
+Zmena zisku oproti min. mesiacu =
+[Zisk zrealizovaný] - [Zisk minulý mesiac]
+
+Poradie firmy podľa zisku na deň =
+IF (
+    HASONEVALUE ( Firmy[firma] ),
+    RANKX ( ALLSELECTED ( Firmy[firma] ), [Zisk na deň], , DESC )
+)
+
+Cieľový zisk % =
+DIVIDE ( AVERAGE ( Vozidla[ciel_zisk_pct] ), 100 )
+
+Hodnotenie firmy =
+VAR m = [Marža %]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( m ), BLANK (),
+        m >= [Cieľový zisk %], "Výhodná",
+        m >= 0, "Slabá marža",
+        "Stratová"
+    )
+
+// Farba pre podmienené formátovanie (Formát → Farba → fx → Hodnota poľa)
+Farba zisku =
+IF ( [Zisk] < 0, "#B3261E", "#1D7A3E" )

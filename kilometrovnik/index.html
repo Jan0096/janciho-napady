@@ -80,7 +80,7 @@ nav.tabs .count { font-family: var(--f-num); font-size: 12px; margin-left: 4px; 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
 .toolbar .grow { flex: 1 1 180px; min-width: 0; }
 label.lbl, .lbl { display: block; font-size: 13px; color: var(--ink-2); font-weight: 500; margin-bottom: 4px; }
-select, input[type="text"] {
+select, input[type="text"], input[type="date"] {
   width: 100%; font: 500 15px/1.2 var(--f-body); color: var(--ink); background: var(--surface-2);
   border: 1px solid var(--line); border-radius: var(--r); padding: 9px 10px; min-width: 0;
 }
@@ -208,6 +208,15 @@ table.list tr.best td { background: var(--good-soft); }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); margin-top: 10px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 10px; height: 10px; border-radius: 2px; }
+.steps { margin: 0 0 18px; padding-left: 20px; display: grid; gap: 6px; max-width: 75ch; color: var(--ink-2); }
+.steps b { color: var(--ink); }
+.files { display: grid; gap: 10px; margin-bottom: 14px; }
+.file { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.file .fn { font: 600 15px/1.2 var(--f-num); }
+.file .fd { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+.file .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 560px) { .file { grid-template-columns: minmax(0, 1fr); } .file .acts { justify-content: flex-start; } }
+textarea.copybox { width: 100%; min-height: 140px; font: 12px/1.4 var(--f-num); background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; }
 label.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
 footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch; }
 @media (max-width: 480px) {
@@ -236,6 +245,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       <button role="tab" data-tab="jazda" id="tab-jazda">2. Ocenenie jazdy</button>
       <button role="tab" data-tab="ponuky" id="tab-ponuky">3. Porovnanie ponúk<span class="count" id="offerCount"></span></button>
       <button role="tab" data-tab="firmy" id="tab-firmy">4. Firmy</button>
+      <button role="tab" data-tab="powerbi" id="tab-powerbi">5. Financie a Power BI</button>
     </nav>
   </header>
 
@@ -304,6 +314,10 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
               </div>
             </div>
             <div class="field">
+              <label class="lbl" for="t-datum">Dátum jazdy</label>
+              <input type="date" id="t-datum" data-t="datum">
+            </div>
+            <div class="field">
               <label class="lbl" for="t-splat">Splatnosť faktúry</label>
               <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="t-splat" data-t="splatnost"><span class="unit">dní</span></div>
             </div>
@@ -363,6 +377,11 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     <div class="panel" id="firmsPanel"></div>
   </section>
 
+  <!-- ZÁLOŽKA 5: FINANCIE A POWER BI -->
+  <section id="view-powerbi" hidden>
+    <div class="panel" id="pbiPanel"></div>
+  </section>
+
   <footer>
     Dáta sa ukladajú iba v tomto prehliadači. Fixné náklady sa do jazdy počítajú podľa dní, ktoré auto na jazde strávi, pretože leasing, poistenie aj mzda bežia aj vtedy, keď auto stojí. Variabilné náklady sa počítajú z každého najazdeného km vrátane prázdnych.
   </footer>
@@ -415,13 +434,15 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
 
   const LS_KEY = 'kilometrovnik.v1';
   const uid = () => Math.random().toString(36).slice(2, 10);
-  const blankTrip = (vehId) => ({ firma: '', splatnost: '', trasa: '', vehId, cena: '', cenaTyp: 'spolu', km: '', prazdne: '', dni: '', myto: '', ine: '' });
+  const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const blankTrip = (vehId) => ({ datum: today(), firma: '', splatnost: '', trasa: '', vehId, cena: '', cenaTyp: 'spolu', km: '', prazdne: '', dni: '', myto: '', ine: '' });
 
   function defaultState() {
     const v = Object.assign({ id: uid(), example: true }, PRESETS.tahac, { name: 'Ťahač 01 (príklad)' });
     return {
       vehicles: [v], activeId: v.id, tab: 'vozidla', offers: [], firmFilter: 'vsetky', firmMetric: 'ziskDen',
-      trip: { firma: 'Zákazník A (príklad)', splatnost: '30', trasa: 'Žilina → Mníchov (príklad)', vehId: v.id, cena: '1050', cenaTyp: 'spolu', km: '620', prazdne: '80', dni: '', myto: '165', ine: '0' },
+      trip: { datum: today(), firma: 'Zákazník A (príklad)', splatnost: '30', trasa: 'Žilina → Mníchov (príklad)', vehId: v.id, cena: '1050', cenaTyp: 'spolu', km: '620', prazdne: '80', dni: '', myto: '165', ine: '0' },
     };
   }
 
@@ -432,7 +453,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       const s = JSON.parse(raw);
       if (!s || !Array.isArray(s.vehicles) || !s.vehicles.length) return null;
       s.offers = Array.isArray(s.offers) ? s.offers : [];
-      s.offers.forEach(o => { if (o.firma == null) o.firma = ''; if (!o.stav) o.stav = 'ponuka'; });
+      s.offers.forEach(o => { if (o.firma == null) o.firma = ''; if (!o.stav) o.stav = 'ponuka'; if (o.zaplatena == null) o.zaplatena = false; });
       s.trip = Object.assign(blankTrip(s.vehicles[0].id), s.trip || {});
       if (!s.vehicles.some(v => v.id === s.activeId)) s.activeId = s.vehicles[0].id;
       return s;
@@ -535,11 +556,12 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   function setTab(tab) {
     state.tab = tab; save();
     document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
-    ['vozidla', 'jazda', 'ponuky', 'firmy'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
+    ['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
     if (tab === 'jazda') renderTrip(true);
     if (tab === 'ponuky') renderOffers();
     if (tab === 'vozidla') renderVehicle(true);
     if (tab === 'firmy') renderFirms();
+    if (tab === 'powerbi') renderPbi();
   }
   document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
@@ -836,9 +858,12 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       id: uid(), firma: String(t.firma || '').trim(), trasa: t.trasa || 'Ponuka ' + (state.offers.length + 1), vozidlo: r.v.name || '',
       km: r.km, kmTotal: r.kmTotal, dni: r.dni, naklady: r.naklady, cena: r.cena, zisk: r.zisk, ziskPct: r.ziskPct,
       ziskDen: r.ziskDen, cenaKm: r.cenaKm, verdict: r.verdict, ciel: r.c.zisk,
-      splatnost: String(t.splatnost || '').trim() === '' ? null : num(t.splatnost), stav, datum: new Date().toISOString().slice(0, 10),
+      splatnost: String(t.splatnost || '').trim() === '' ? null : num(t.splatnost), stav, datum: t.datum || today(),
+      vozidloId: r.v.id, prazdne: r.prazdne, myto: r.myto, ine: r.ine, varCost: r.varCost, fixCost: r.fixCost, dietaCost: r.dietaCost,
+      zaplatena: false,
     };
   }
+  function fmtDate(iso) { if (!iso) return '—'; const [y, m, d] = String(iso).split('-'); return d ? `${+d}. ${+m}. ${y}` : iso; }
   function firmNames() {
     const seen = new Map();
     state.offers.forEach(o => { const n = String(o.firma || '').trim(); if (n && !seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n); });
@@ -859,17 +884,17 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     const label = { good: 'Oplatí sa', warn: 'Hraničné', bad: 'Neoplatí sa' };
     p.innerHTML = `<div class="section-title" style="margin-top:0"><h3>Porovnanie ponúk</h3><span>zoradené podľa zisku za deň, najlepšia hore</span></div>
       <div class="scroll"><table class="list">
-        <thead><tr><th>Firma</th><th>Trasa</th><th>Vozidlo</th><th class="r">Km spolu</th><th class="r">Dni</th><th class="r">Náklady</th><th class="r">Cena</th><th class="r">Zisk</th><th class="r">Zisk/deň</th><th class="r">€/km</th><th>Hodnotenie</th><th>Stav</th><th></th></tr></thead>
+        <thead><tr><th>Dátum</th><th>Firma</th><th>Trasa</th><th>Vozidlo</th><th class="r">Km spolu</th><th class="r">Dni</th><th class="r">Náklady</th><th class="r">Cena</th><th class="r">Zisk</th><th class="r">Zisk/deň</th><th class="r">€/km</th><th>Hodnotenie</th><th>Stav</th><th></th></tr></thead>
         <tbody>${rows.map((o, i) => `
           <tr class="${i === 0 && o.zisk > 0 ? 'best' : ''}">
-            <td><b>${esc(o.firma || '—')}</b></td><td>${esc(o.trasa)}</td><td>${esc(o.vozidlo)}</td>
+            <td class="num" style="font-size:13px">${esc(fmtDate(o.datum))}</td><td><b>${esc(o.firma || '—')}</b></td><td>${esc(o.trasa)}</td><td>${esc(o.vozidlo)}</td>
             <td class="r">${fmt(o.kmTotal)}</td><td class="r">${fmt(o.dni, 1)}</td>
             <td class="r">${eur(o.naklady)}</td><td class="r">${eur(o.cena)}</td>
             <td class="r ${o.zisk >= 0 ? 'pos' : 'neg'}">${eur(o.zisk)}</td>
             <td class="r ${o.ziskDen >= 0 ? 'pos' : 'neg'}"><b>${eur(o.ziskDen)}</b></td>
             <td class="r">${fmt(o.cenaKm, 2)}</td>
             <td><span class="pill ${o.verdict}"><i></i>${label[o.verdict] || ''}</span></td>
-            <td><label class="check"><input type="checkbox" data-stav="${o.id}"${o.stav === 'prevzata' ? ' checked' : ''}> Zrealizovaná</label></td>
+            <td><div style="display:grid;gap:4px"><label class="check"><input type="checkbox" data-stav="${o.id}"${o.stav === 'prevzata' ? ' checked' : ''}> Zrealizovaná</label><label class="check"><input type="checkbox" data-paid="${o.id}"${o.zaplatena ? ' checked' : ''}> Zaplatená</label></div></td>
             <td><button class="btn small" data-del="${o.id}" aria-label="Odstrániť ponuku">Odstrániť</button></td>
           </tr>`).join('')}</tbody>
       </table></div>
@@ -882,6 +907,10 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     }));
     p.querySelectorAll('[data-stav]').forEach(c => c.addEventListener('change', () => {
       const o = state.offers.find(x => x.id === c.dataset.stav); if (o) { o.stav = c.checked ? 'prevzata' : 'ponuka'; save(); }
+    }));
+    p.querySelectorAll('[data-paid]').forEach(c => c.addEventListener('change', () => {
+      const o = state.offers.find(x => x.id === c.dataset.paid);
+      if (o) { o.zaplatena = c.checked; if (c.checked && o.stav !== 'prevzata') { o.stav = 'prevzata'; p.querySelector(`[data-stav="${o.id}"]`).checked = true; } save(); }
     }));
     $('#clearOffers').addEventListener('click', () => {
       $('#clearWrap').innerHTML = `<span class="confirm">Vymazať všetky ponuky? <button class="btn small danger" id="clrYes">Áno</button><button class="btn small" id="clrNo">Nie</button></span>`;
@@ -899,24 +928,27 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   };
   const FIRM_LABEL = { good: 'Výhodná', warn: 'Slabá marža', bad: 'Stratová' };
 
+  // [firma, trasa, km s nákladom, km naprázdno, mýto, cena, splatnosť, zrealizovaná, pred koľkými dňami, zaplatená]
   const SAMPLE = [
-    ['Zákazník A (príklad)', 'Žilina → Mníchov', 620, 80, 165, 1250, 30, true],
-    ['Zákazník A (príklad)', 'Žilina → Linz', 380, 40, 95, 820, 30, true],
-    ['Zákazník A (príklad)', 'Trnava → Brno', 150, 60, 35, 420, 30, false],
-    ['Zákazník B (príklad)', 'Bratislava → Miláno', 860, 120, 240, 1450, 60, true],
-    ['Zákazník B (príklad)', 'Nitra → Verona', 780, 150, 210, 1300, 60, true],
-    ['Zákazník C (príklad)', 'Košice → Varšava', 520, 200, 60, 780, 90, true],
-    ['Zákazník C (príklad)', 'Prešov → Krakov', 260, 180, 30, 450, 90, true],
-    ['Zákazník D (príklad)', 'Žilina → Praha', 350, 30, 90, 860, 14, true],
-    ['Zákazník D (príklad)', 'Martin → Ostrava', 140, 20, 25, 390, 14, true],
+    ['Zákazník A (príklad)', 'Žilina → Mníchov', 620, 80, 165, 1250, 30, true, 74, true],
+    ['Zákazník A (príklad)', 'Žilina → Linz', 380, 40, 95, 820, 30, true, 38, false],
+    ['Zákazník A (príklad)', 'Trnava → Brno', 150, 60, 35, 420, 30, false, 2, false],
+    ['Zákazník B (príklad)', 'Bratislava → Miláno', 860, 120, 240, 1450, 60, true, 81, true],
+    ['Zákazník B (príklad)', 'Nitra → Verona', 780, 150, 210, 1300, 60, true, 25, false],
+    ['Zákazník C (príklad)', 'Košice → Varšava', 520, 200, 60, 780, 90, true, 120, false],
+    ['Zákazník C (príklad)', 'Prešov → Krakov', 260, 180, 30, 450, 90, true, 47, false],
+    ['Zákazník D (príklad)', 'Žilina → Praha', 350, 30, 90, 860, 14, true, 55, true],
+    ['Zákazník D (príklad)', 'Martin → Ostrava', 140, 20, 25, 390, 14, true, 9, false],
   ];
   function loadSample() {
     const vehId = state.vehicles[0].id;
-    SAMPLE.forEach(([firma, trasa, km, prazdne, myto, cena, splatnost, done]) => {
-      const t = Object.assign(blankTrip(vehId), { firma, trasa, km, prazdne, myto, cena, splatnost, ine: 0 });
-      state.offers.push(makeOffer(t, calcTrip(t), done ? 'prevzata' : 'ponuka'));
+    SAMPLE.forEach(([firma, trasa, km, prazdne, myto, cena, splatnost, done, ago, paid]) => {
+      const t = Object.assign(blankTrip(vehId), { firma, trasa, km, prazdne, myto, cena, splatnost, ine: 0, datum: addDays(today(), -ago) });
+      const o = makeOffer(t, calcTrip(t), done ? 'prevzata' : 'ponuka');
+      o.zaplatena = paid;
+      state.offers.push(o);
     });
-    save(); updateCount(); renderFirms(); toast('Ukážkové jazdy načítané – zmažeš ich v záložke Porovnanie ponúk');
+    save(); updateCount(); if (state.tab === 'powerbi') renderPbi(); else renderFirms(); toast('Ukážkové jazdy načítané – zmažeš ich v záložke Porovnanie ponúk');
   }
 
   function firmStats(offers) {
@@ -1053,9 +1085,123 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     document.querySelectorAll('[data-fm]').forEach(b => b.addEventListener('click', () => { state.firmMetric = b.dataset.fm; save(); renderFirms(); }));
   }
 
+  // ---------- Záložka 5: financie a export do Power BI ----------
+  function csv(headers, rows) {
+    const q = (v) => {
+      if (v == null || v === '') return '';
+      if (typeof v === 'number') return isFinite(v) ? String(Math.round(v * 10000) / 10000) : '';
+      const t = String(v);
+      return /[;"\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+    };
+    return [headers.join(';'), ...rows.map(r => r.map(q).join(';'))].join('\r\n') + '\r\n';
+  }
+  const firmOf = (o) => String(o.firma || '').trim() || 'Bez firmy';
+  function vehIdOf(o) {
+    if (o.vozidloId) return o.vozidloId;
+    const v = state.vehicles.find(x => x.name === o.vozidlo);
+    return v ? v.id : '';
+  }
+  function dueOf(o) { return o.datum && o.splatnost != null ? addDays(o.datum, Math.round(o.splatnost)) : ''; }
+
+  const EXPORTS = {
+    'jazdy.csv': {
+      title: 'Jazdy', desc: 'Každá uložená jazda: dátum, firma, km, tržba, náklady rozpísané po položkách, zisk, splatnosť a úhrada.',
+      count: () => state.offers.length,
+      build: () => csv(
+        ['id', 'datum', 'firma', 'trasa', 'vozidlo_id', 'vozidlo', 'stav', 'zaplatena', 'km_naklad', 'km_prazdne', 'km_spolu', 'dni',
+          'trzba', 'naklady', 'variabilne_naklady', 'fixne_naklady', 'diety', 'myto', 'ine_naklady', 'zisk', 'marza_pct', 'zisk_den',
+          'splatnost_dni', 'datum_splatnosti'],
+        state.offers.map(o => [o.id, o.datum || '', firmOf(o), o.trasa, vehIdOf(o), o.vozidlo, o.stav === 'prevzata' ? 'zrealizovana' : 'ponuka',
+          o.zaplatena ? 1 : 0, o.km, o.prazdne ?? (o.kmTotal - o.km), o.kmTotal, o.dni,
+          o.cena, o.naklady, o.varCost, o.fixCost, o.dietaCost, o.myto, o.ine, o.zisk, o.ziskPct, o.ziskDen,
+          o.splatnost, dueOf(o)])),
+    },
+    'firmy.csv': {
+      title: 'Firmy', desc: 'Zoznam zákazníkov. V Power BI podľa neho filtruješ a porovnávaš firmy.',
+      count: () => new Set(state.offers.map(o => firmOf(o).toLowerCase())).size,
+      build: () => {
+        const m = new Map();
+        state.offers.forEach(o => { const n = firmOf(o); if (!m.has(n.toLowerCase())) m.set(n.toLowerCase(), n); });
+        return csv(['firma'], [...m.values()].sort((a, b) => a.localeCompare(b, 'sk')).map(n => [n]));
+      },
+    },
+    'vozidla.csv': {
+      title: 'Vozidlá', desc: 'Náklady každého auta: fixné mesačne, variabilné a celkové na km, nájazd a cieľový zisk.',
+      count: () => state.vehicles.length,
+      build: () => csv(
+        ['id', 'nazov', 'fixne_mesacne', 'diety_den', 'km_mesacne', 'dni_mesacne', 'variabilne_km', 'fixne_km', 'naklad_km', 'ciel_zisk_pct'],
+        state.vehicles.map(v => { const c = calc(v); return [v.id, v.name || '', c.fixMes, c.dieta, c.km, c.dni, c.varKm, c.fixKm + c.dietaKm, c.totalKm, c.zisk]; })),
+    },
+  };
+
+  function downloadFile(name, text) {
+    try {
+      const url = URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    } catch (e) { toast('Súbor sa nepodarilo stiahnuť – použi Kopírovať'); }
+  }
+  function copyText(name, text, holder) {
+    const fallback = () => {
+      holder.innerHTML = `<p class="hint" style="margin:8px 0 4px">Označ text nižšie (Ctrl+A, Ctrl+C), vlož ho do Poznámkového bloku a ulož ako <b>${name}</b> v kódovaní UTF-8.</p><textarea class="copybox" readonly>${esc(text)}</textarea>`;
+      const ta = holder.querySelector('textarea'); ta.focus(); ta.select();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => toast(`Obsah ${name} skopírovaný`), fallback);
+    } else fallback();
+  }
+
+  function renderPbi() {
+    const p = $('#pbiPanel');
+    const done = state.offers.filter(o => o.stav === 'prevzata');
+    const sum = (arr, f) => arr.reduce((a, o) => a + (f(o) || 0), 0);
+    const trzby = sum(done, o => o.cena), zisk = sum(done, o => o.zisk);
+    const unpaid = done.filter(o => !o.zaplatena);
+    const t = today();
+    const overdue = unpaid.filter(o => { const d = dueOf(o); return d && d < t; });
+    const in30 = unpaid.filter(o => { const d = dueOf(o); return d && d >= t && d <= addDays(t, 30); });
+    const fixMes = state.vehicles.reduce((a, v) => a + calc(v).fixMes, 0);
+
+    p.innerHTML = `
+      <div class="section-title" style="margin-top:0"><h3>Financie</h3><span>zo zrealizovaných jázd (${done.length})</span></div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Tržby</div><div class="name num">${eur(trzby)}</div><div class="v">zisk ${eur(zisk)} · marža ${fmt(sum(done, o => o.naklady) ? zisk / sum(done, o => o.naklady) * 100 : 0, 1)} %</div></div>
+        <div class="tile"><div class="k">Neuhradené faktúry</div><div class="name num">${eur(sum(unpaid, o => o.cena))}</div><div class="v">${unpaid.length} faktúr · do 30 dní príde ${eur(sum(in30, o => o.cena))}</div></div>
+        <div class="tile ${overdue.length ? 'bad' : 'good'}"><div class="k"><i></i>Po splatnosti</div><div class="name num">${eur(sum(overdue, o => o.cena))}</div><div class="v">${overdue.length ? overdue.length + ' faktúr · ' + [...new Set(overdue.map(firmOf))].map(esc).join(', ') : 'nič nie je po splatnosti'}</div></div>
+        <div class="tile"><div class="k">Fixné náklady flotily</div><div class="name num">${eur(fixMes)}</div><div class="v">mesačne za ${state.vehicles.length} ${state.vehicles.length === 1 ? 'vozidlo' : 'vozidiel'}, bez diét</div></div>
+      </div>
+      <p class="hint" style="margin:-6px 0 22px">Úhradu faktúry označíš v záložke <b>Porovnanie ponúk</b> (políčko Zaplatená). Splatnosť sa počíta od dátumu jazdy.</p>
+
+      <div class="section-title"><h3>Export do Power BI</h3><span>3 súbory CSV, oddeľovač bodkočiarka, UTF-8</span></div>
+      <ol class="steps">
+        <li>Stiahni všetky tri súbory do <b>jedného priečinka</b>, napríklad <span class="num">C:\\Kilometrovnik\\</span>. Názvy súborov nemeň.</li>
+        <li>V Power BI Desktop vlož hotové dotazy a vzorce z priečinka <span class="num">kilometrovnik/powerbi/</span> v repozitári. Postup je v súbore <span class="num">NAVOD.md</span>.</li>
+        <li>Keď pribudnú nové jazdy, exportuj znova do toho istého priečinka (prepíš súbory) a v Power BI klikni <b>Obnoviť</b>.</li>
+      </ol>
+      <div class="files">
+        ${Object.entries(EXPORTS).map(([name, e]) => `
+          <div class="file">
+            <div style="min-width:0"><div class="fn">${name}</div><div class="fd">${e.desc} <b>${e.count()} riadkov.</b></div></div>
+            <div class="acts"><button class="btn primary small" data-dl="${name}">Stiahnuť</button><button class="btn small" data-cp="${name}">Kopírovať</button></div>
+            <div data-holder="${name}" style="grid-column:1/-1"></div>
+          </div>`).join('')}
+      </div>
+      <div class="toolbar" style="margin:0">
+        <button class="btn" id="dlAll">Stiahnuť všetky 3 súbory</button>
+        ${state.offers.length ? '' : '<button class="btn" id="loadSample2">Načítať ukážkové jazdy</button>'}
+      </div>
+      <p class="hint" style="margin:12px 0 0;max-width:75ch">Ak sa po kliknutí na Stiahnuť nič nestiahne (napríklad keď appku otváraš cez odkaz na claude.ai), použi <b>Kopírovať</b>, vlož text do Poznámkového bloku a ulož ho s rovnakým názvom súboru v kódovaní UTF-8. Keď appku otvoríš zo súboru <span class="num">index.html</span> v počítači, sťahovanie funguje normálne.</p>`;
+
+    p.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => downloadFile(b.dataset.dl, EXPORTS[b.dataset.dl].build())));
+    p.querySelectorAll('[data-cp]').forEach(b => b.addEventListener('click', () => copyText(b.dataset.cp, EXPORTS[b.dataset.cp].build(), p.querySelector(`[data-holder="${b.dataset.cp}"]`))));
+    $('#dlAll').addEventListener('click', () => Object.keys(EXPORTS).forEach((n, i) => setTimeout(() => downloadFile(n, EXPORTS[n].build()), i * 400)));
+    const ls = $('#loadSample2'); if (ls) ls.addEventListener('click', loadSample);
+  }
+
   // ---------- Štart ----------
   updateCount();
-  setTab(['vozidla', 'jazda', 'ponuky', 'firmy'].includes(state.tab) ? state.tab : 'vozidla');
+  setTab(['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi'].includes(state.tab) ? state.tab : 'vozidla');
 })();
 </script>
 </body>

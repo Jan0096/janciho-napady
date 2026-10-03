@@ -75,6 +75,11 @@ Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrét
    - stĺpcový graf firiem od najvýhodnejšej po najmenej výhodnú (zelená = zisk, červená = strata), dá sa prepnúť medzi **zisk za deň, marža %, zisk spolu a tržba €/km**, aj na **len zrealizované jazdy**,
    - tabuľka so súčtami za každú firmu (jazdy, km, tržba, náklady, zisk, marža, priemerná splatnosť faktúr) a hodnotenie **Výhodná / Slabá marža / Stratová**,
    - tlačidlo **Načítať ukážkové jazdy**, ak si chceš vyhodnotenie najprv pozrieť na príklade.
+5. **Financie a Power BI** – prehľad tržieb, zisku, neuhradených faktúr a faktúr po splatnosti (jazdy označuješ ako *Zrealizovaná* a *Zaplatená*, pri jazde zadáš dátum a splatnosť) a **export troch CSV súborov** (`jazdy.csv`, `firmy.csv`, `vozidla.csv`) pre Power BI.
+
+### Power BI (`kilometrovnik/powerbi/`)
+
+Hotové dotazy Power Query (`dotazy-power-query.m`), miery DAX (`miery.dax`: tržby, zisk, marža, zisk na deň, pohľadávky, cash flow podľa splatnosti, náklady na státie, odhad hospodárskeho výsledku, poradie firiem), ukážkové dáta a návod krok za krokom v [`kilometrovnik/powerbi/NAVOD.md`](kilometrovnik/powerbi/NAVOD.md).
 
 ## Ako počíta
 
