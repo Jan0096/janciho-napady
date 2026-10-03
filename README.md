@@ -69,7 +69,12 @@ Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrét
    - graf, ako klesá náklad na km s vyšším mesačným nájazdom,
    - tipy, kde ušetriť, a porovnanie všetkých áut (najlacnejšie zvýraznené).
 2. **Ocenenie jazdy** – zadáš ponuku: km s nákladom, km naprázdno, mýto, iné náklady a cenu (spolu alebo €/km). Appka vypočíta náklady jazdy, zisk, zisk za deň a dá verdikt **Oplatí sa / Hraničné / Neoplatí sa** + minimálnu a odporúčanú cenu.
-3. **Porovnanie ponúk** – uložené ponuky zoradené podľa **zisku za deň**, aby si vybral tú najlepšiu.
+3. **Porovnanie ponúk** – uložené ponuky zoradené podľa **zisku za deň**, aby si vybral tú najlepšiu. Jazdy, ktoré si naozaj odviezol, označíš ako **Zrealizovaná**.
+4. **Firmy** – grafické vyhodnotenie zákazníkov (firmu zadáš pri ocenení jazdy):
+   - kartičky **Najviac sa oplatí / Najmenej sa oplatí / Najväčší zákazník**,
+   - stĺpcový graf firiem od najvýhodnejšej po najmenej výhodnú (zelená = zisk, červená = strata), dá sa prepnúť medzi **zisk za deň, marža %, zisk spolu a tržba €/km**, aj na **len zrealizované jazdy**,
+   - tabuľka so súčtami za každú firmu (jazdy, km, tržba, náklady, zisk, marža, priemerná splatnosť faktúr) a hodnotenie **Výhodná / Slabá marža / Stratová**,
+   - tlačidlo **Načítať ukážkové jazdy**, ak si chceš vyhodnotenie najprv pozrieť na príklade.
 
 ## Ako počíta
 
