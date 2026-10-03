@@ -1415,7 +1415,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         afterImport(importRows(rows.filter(r => r.some(c => String(c).trim()))));
       } else {
         let text = await file.text();
-        if (text.includes('�') && window.TextDecoder) text = new TextDecoder('windows-1250').decode(await file.arrayBuffer());
+        if (text.includes('\ufffd') && window.TextDecoder) text = new TextDecoder('windows-1250').decode(await file.arrayBuffer());
         afterImport(importRows(parseDelimited(text.replace(/^﻿/, ''))));
       }
     } catch (e) { toast('Súbor sa nepodarilo prečítať. Skús ho uložiť ako CSV.'); }
