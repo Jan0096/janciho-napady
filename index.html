@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Janciho nápady</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>💡 Janciho nápady</h1>
+      <p class="subtitle">Nahraj nápad hlasom, ohodnoť ho a nechaj si navrhnúť skóre.</p>
+    </header>
+
+    <!-- Nastavenia: API kľúč -->
+    <details class="card settings" id="settings">
+      <summary>⚙️ Nastavenia (API kľúč)</summary>
+      <label for="apiKey">Anthropic API kľúč</label>
+      <div class="row">
+        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off">
+        <button type="button" id="saveKey" class="secondary">Uložiť kľúč</button>
+      </div>
+      <p class="hint">Kľúč sa uloží iba v tomto prehliadači na tvojom počítači (localStorage) a posiela sa len priamo na api.anthropic.com.</p>
+    </details>
+
+    <!-- 1. Nahrávanie a prepis -->
+    <section class="card">
+      <h2>1. Nápad</h2>
+      <div class="row">
+        <button type="button" id="recordBtn" class="primary">🎤 Nahrať nápad</button>
+        <span id="recStatus" class="status"></span>
+      </div>
+      <label for="transcript">Prepis nápadu (môžeš ho upraviť)</label>
+      <textarea id="transcript" rows="6" placeholder="Tu sa objaví prepísaný text..."></textarea>
+    </section>
+
+    <!-- 2. Slovné hodnotenie -->
+    <section class="card">
+      <h2>2. Moje slovné hodnotenie</h2>
+      <label for="opinion">Čo si o nápade myslím</label>
+      <textarea id="opinion" rows="4" placeholder="Napíš vlastnými slovami, čo si o nápade myslíš..."></textarea>
+    </section>
+
+    <!-- 3. Skóre -->
+    <section class="card">
+      <h2>3. Hodnotenie</h2>
+      <div class="scores">
+        <div class="score" data-key="konkurencia">
+          <div class="score-head"><span>Konkurencia</span><output id="out-konkurencia">5</output></div>
+          <input type="range" id="konkurencia" min="1" max="10" value="5">
+          <p class="reason" id="reason-konkurencia"></p>
+        </div>
+        <div class="score" data-key="udrzatelnost">
+          <div class="score-head"><span>Udržateľnosť</span><output id="out-udrzatelnost">5</output></div>
+          <input type="range" id="udrzatelnost" min="1" max="10" value="5">
+          <p class="reason" id="reason-udrzatelnost"></p>
+        </div>
+        <div class="score" data-key="kvalita">
+          <div class="score-head"><span>Kvalita nápadu</span><output id="out-kvalita">5</output></div>
+          <input type="range" id="kvalita" min="1" max="10" value="5">
+          <p class="reason" id="reason-kvalita"></p>
+        </div>
+      </div>
+      <p class="hint">Konkurencia: 10 = takmer žiadna konkurencia, 1 = trh je preplnený.</p>
+
+      <div class="row">
+        <button type="button" id="suggestBtn" class="primary">✨ Navrhni skóre</button>
+        <button type="button" id="saveIdeaBtn" class="secondary">💾 Uložiť nápad</button>
+        <span id="aiStatus" class="status"></span>
+      </div>
+      <div id="summary" class="summary" hidden></div>
+    </section>
+
+    <!-- Uložené nápady -->
+    <section class="card">
+      <h2>Uložené nápady</h2>
+      <ul id="ideaList" class="idea-list"></ul>
+      <p id="emptyList" class="hint">Zatiaľ žiadne uložené nápady.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
