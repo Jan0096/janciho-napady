@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kilometrovník dopravcu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: nástroj s tromi záložkami; vľavo formulár, vpravo lepkavý panel výsledkov; na mobile pod sebou. */
+:root {
+  --bg: #eceff2;
+  --surface: #ffffff;
+  --surface-2: #f5f7f9;
+  --ink: #161a1f;
+  --ink-2: #48525c;
+  --muted: #74808b;
+  --line: #d5dbe1;
+  --accent: #cf5a0a;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe7d8;
+  --good: #1d7a3e;
+  --good-soft: #e0f1e5;
+  --warn: #9a5c00;
+  --warn-soft: #fbeed4;
+  --bad: #b3261e;
+  --bad-soft: #f9e0de;
+  --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101317; --surface: #191e24; --surface-2: #1f252c; --ink: #e8ecef; --ink-2: #b3bcc5; --muted: #85909b; --line: #2c343d;
+    --accent: #ff8b3d; --accent-ink: #1a0d03; --accent-soft: #3a2415;
+    --good: #5ccb86; --good-soft: #142e1e; --warn: #f2b44c; --warn-soft: #332611; --bad: #ff7b71; --bad-soft: #3a1815;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101317; --surface: #191e24; --surface-2: #1f252c; --ink: #e8ecef; --ink-2: #b3bcc5; --muted: #85909b; --line: #2c343d;
+  --accent: #ff8b3d; --accent-ink: #1a0d03; --accent-soft: #3a2415;
+  --good: #5ccb86; --good-soft: #142e1e; --warn: #f2b44c; --warn-soft: #332611; --bad: #ff7b71; --bad-soft: #3a1815;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.45 var(--f-body);
+  padding: 0 16px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+
+/* hlavička */
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-block: 24px 16px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand .mark { width: 52px; height: 44px; flex: 0 0 auto; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font: 700 16px/1 var(--f-display); letter-spacing: 0; }
+.brand h1 { font-size: 30px; line-height: 1; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+nav.tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px; flex-wrap: wrap; }
+nav.tabs button { border: 0; background: none; color: var(--ink-2); font: 600 15px/1 var(--f-body); padding: 10px 14px; border-radius: 5px; cursor: pointer; }
+nav.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+nav.tabs .count { font-family: var(--f-num); font-size: 12px; margin-left: 4px; opacity: .75; }
+
+/* rozloženie */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.sticky { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 900px) { .sticky { position: static; } }
+.stack { display: grid; gap: 20px; }
+
+/* formulár */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+.toolbar .grow { flex: 1 1 180px; min-width: 0; }
+label.lbl, .lbl { display: block; font-size: 13px; color: var(--ink-2); font-weight: 500; margin-bottom: 4px; }
+select, input[type="text"] {
+  width: 100%; font: 500 15px/1.2 var(--f-body); color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 9px 10px; min-width: 0;
+}
+input.n { font-family: var(--f-num); text-align: right; font-size: 14px; }
+select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+fieldset { border: 0; padding: 0; margin: 0 0 18px; }
+legend { padding: 0; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; width: 100%; }
+legend h3 { font-size: 19px; }
+legend span { color: var(--muted); font-size: 13px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; }
+.field .inwrap { display: flex; align-items: stretch; }
+.field .inwrap input { border-radius: var(--r) 0 0 var(--r); flex: 1 1 auto; }
+.field .unit { flex: 0 0 auto; display: grid; place-items: center; padding: 0 9px; font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-left: 0; border-radius: 0 var(--r) var(--r) 0; min-width: 62px; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+button.btn { font: 600 14px/1 var(--f-body); border-radius: var(--r); padding: 10px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); white-space: nowrap; }
+button.btn:hover { border-color: var(--ink-2); }
+button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.btn.primary:hover { filter: brightness(1.05); }
+button.btn.danger { color: var(--bad); }
+button.btn.small { padding: 7px 10px; font-size: 13px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+.note { font-size: 13px; color: var(--ink-2); background: var(--surface-2); border-radius: var(--r); padding: 10px 12px; }
+
+/* výsledky */
+.kpi-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.big { font: 600 46px/1 var(--f-num); letter-spacing: -.02em; margin: 6px 0 2px; }
+.big small { font-size: 18px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 14px 0 4px; }
+.kpis > div { background: var(--surface); padding: 10px; min-width: 0; }
+.kpis .v { font: 600 17px/1.2 var(--f-num); font-variant-numeric: tabular-nums; }
+.kpis .k { font-size: 12px; color: var(--muted); }
+.price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.price-row > div { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.price-row > div.rec { border-color: var(--accent); background: var(--accent-soft); }
+.price-row .v { font: 600 22px/1.1 var(--f-num); }
+.price-row .k { font-size: 12px; color: var(--ink-2); }
+
+.section-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 22px 0 10px; }
+.section-title h3 { font-size: 18px; }
+.section-title span { font-size: 12px; color: var(--muted); }
+
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; font-size: 13px; }
+.bar .name { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .name em { font-style: normal; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-left: 4px; }
+.bar .val { font-family: var(--f-num); font-variant-numeric: tabular-nums; font-size: 13px; text-align: right; }
+.bar .track { grid-column: 1 / -1; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 3px; background: var(--accent); }
+.bar .fill.fix { background: var(--ink-2); }
+
+.chart-box { position: relative; }
+.chart-box svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart-box .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font: 500 12px/1.3 var(--f-body); padding: 6px 8px; border-radius: 5px; white-space: nowrap; transform: translate(-50%, -120%); }
+.chart-box .tip b { font-family: var(--f-num); }
+svg text { fill: var(--muted); font: 11px var(--f-body); }
+
+ul.insights { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+ul.insights li { font-size: 14px; padding-left: 14px; position: relative; color: var(--ink-2); }
+ul.insights li::before { content: ""; position: absolute; left: 0; top: .6em; width: 6px; height: 6px; border-radius: 1px; background: var(--accent); }
+ul.insights b { color: var(--ink); font-weight: 600; }
+
+/* verdikt */
+.verdict { border-radius: 8px; padding: 14px; display: grid; gap: 4px; margin-bottom: 14px; }
+.verdict .t { font: 700 24px/1.1 var(--f-display); display: flex; align-items: center; gap: 8px; }
+.verdict .t i { width: 12px; height: 12px; border-radius: 50%; background: currentColor; display: inline-block; flex: 0 0 auto; }
+.verdict p { margin: 0; font-size: 14px; color: var(--ink); }
+.verdict.good { background: var(--good-soft); color: var(--good); }
+.verdict.warn { background: var(--warn-soft); color: var(--warn); }
+.verdict.bad { background: var(--bad-soft); color: var(--bad); }
+.verdict.none { background: var(--surface-2); color: var(--ink-2); }
+
+table.list { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.list th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.list td { padding: 9px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.list td.r, table.list th.r { text-align: right; font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+table.list th.r { font-family: var(--f-body); }
+table.list tr.best td { background: var(--good-soft); }
+.scroll { overflow-x: auto; }
+.pill { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 99px; display: inline-flex; align-items: center; gap: 5px; }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.empty { text-align: center; padding: 36px 16px; color: var(--ink-2); }
+.empty h3 { font-size: 22px; color: var(--ink); margin-bottom: 6px; }
+.seg { flex: 0 0 auto; display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg button { border: 0; background: var(--surface); color: var(--ink-2); font: 600 13px/1 var(--f-body); padding: 0 10px; cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--bad); font-weight: 600; }
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 14px; }
+footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch; }
+@media (max-width: 480px) {
+  .big { font-size: 38px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .price-row { grid-template-columns: 1fr; }
+  .brand h1 { font-size: 26px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar .fill { transition: width .25s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark">€/km</div>
+      <div>
+        <h1>Kilometrovník dopravcu</h1>
+        <p>Koľko ťa stojí kilometer a či sa ponuka z burzy oplatí</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="vozidla" id="tab-vozidla">1. Náklady vozidla</button>
+      <button role="tab" data-tab="jazda" id="tab-jazda">2. Ocenenie jazdy</button>
+      <button role="tab" data-tab="ponuky" id="tab-ponuky">3. Porovnanie ponúk<span class="count" id="offerCount"></span></button>
+    </nav>
+  </header>
+
+  <!-- ZÁLOŽKA 1: NÁKLADY VOZIDLA -->
+  <section id="view-vozidla" class="grid">
+    <div class="panel">
+      <div class="toolbar">
+        <div class="grow">
+          <label class="lbl" for="vehSelect">Vozidlo</label>
+          <select id="vehSelect"></select>
+        </div>
+        <div class="grow">
+          <label class="lbl" for="vehName">Názov / ŠPZ</label>
+          <input type="text" id="vehName" autocomplete="off">
+        </div>
+      </div>
+      <div class="toolbar">
+        <select id="presetSelect" style="flex:1 1 200px;width:auto" aria-label="Typ nového vozidla">
+          <option value="tahac">Nové: ťahač 40 t</option>
+          <option value="solo">Nové: sólo 12 t</option>
+          <option value="dodavka">Nové: dodávka do 3,5 t</option>
+        </select>
+        <button class="btn" id="addVeh">Pridať vozidlo</button>
+        <button class="btn" id="dupVeh">Duplikovať</button>
+        <span id="delWrap"><button class="btn danger" id="delVeh">Zmazať</button></span>
+      </div>
+      <p class="note" id="exampleNote" hidden><span class="chip">Príklad</span> Toto sú orientačné čísla pre ťahač. Prepíš ich svojimi skutočnými nákladmi. Všetky sumy zadávaj <b>bez DPH</b>.</p>
+      <form id="vehForm" autocomplete="off"></form>
+    </div>
+
+    <aside class="stack sticky">
+      <div class="panel" id="vehResults"></div>
+    </aside>
+
+    <div class="panel" style="grid-column: 1 / -1" id="fleetPanel"></div>
+  </section>
+
+  <!-- ZÁLOŽKA 2: OCENENIE JAZDY -->
+  <section id="view-jazda" class="grid" hidden>
+    <div class="panel">
+      <form id="tripForm" autocomplete="off">
+        <fieldset>
+          <legend><h3>Ponuka</h3><span>napr. z burzy prepráv</span></legend>
+          <div class="fields">
+            <div class="field" style="grid-column: 1 / -1">
+              <label class="lbl" for="t-trasa">Trasa / popis</label>
+              <input type="text" id="t-trasa" data-t="trasa" placeholder="napr. Žilina → Mníchov, 24 t">
+            </div>
+            <div class="field">
+              <label class="lbl" for="t-veh">Vozidlo</label>
+              <select id="t-veh" data-t="vehId"></select>
+            </div>
+            <div class="field">
+              <label class="lbl" for="t-cena">Ponúkaná cena (bez DPH)</label>
+              <div class="inwrap">
+                <input type="text" inputmode="decimal" class="n" id="t-cena" data-t="cena">
+                <div class="seg" style="border-radius:0 var(--r) var(--r) 0;border-left:0">
+                  <button type="button" data-ct="spolu">€ spolu</button>
+                  <button type="button" data-ct="km">€/km</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend><h3>Kilometre a čas</h3></legend>
+          <div class="fields">
+            <div class="field">
+              <label class="lbl" for="t-km">Km s nákladom</label>
+              <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="t-km" data-t="km"><span class="unit">km</span></div>
+            </div>
+            <div class="field">
+              <label class="lbl" for="t-prazdne">Km naprázdno</label>
+              <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="t-prazdne" data-t="prazdne"><span class="unit">km</span></div>
+              <div class="hint">Pristavenie na nakládku + presun po vykládke</div>
+            </div>
+            <div class="field">
+              <label class="lbl" for="t-dni">Počet dní</label>
+              <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="t-dni" data-t="dni"><span class="unit">dni</span></div>
+              <div class="hint" id="dniHint"></div>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend><h3>Náklady na trase</h3></legend>
+          <div class="fields">
+            <div class="field">
+              <label class="lbl" for="t-myto">Mýto</label>
+              <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="t-myto" data-t="myto"><span class="unit">€</span></div>
+              <div class="hint">Podľa krajín a trasy</div>
+            </div>
+            <div class="field">
+              <label class="lbl" for="t-ine">Iné (trajekt, parkovanie…)</label>
+              <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="t-ine" data-t="ine"><span class="unit">€</span></div>
+            </div>
+          </div>
+        </fieldset>
+      </form>
+      <div class="toolbar" style="margin:0">
+        <button class="btn primary" id="saveOffer">Uložiť do porovnania</button>
+        <button class="btn" id="newTrip">Nová ponuka</button>
+      </div>
+    </div>
+    <aside class="stack sticky">
+      <div class="panel" id="tripResults"></div>
+    </aside>
+  </section>
+
+  <!-- ZÁLOŽKA 3: POROVNANIE -->
+  <section id="view-ponuky" hidden>
+    <div class="panel" id="offersPanel"></div>
+  </section>
+
+  <footer>
+    Dáta sa ukladajú iba v tomto prehliadači. Fixné náklady sa do jazdy počítajú podľa dní, ktoré auto na jazde strávi, pretože leasing, poistenie aj mzda bežia aj vtedy, keď auto stojí. Variabilné náklady sa počítajú z každého najazdeného km vrátane prázdnych.
+  </footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Definície ----------
+  const FIELDS = [
+    { group: 'Fixné náklady', note: 'bežia, aj keď auto stojí', items: [
+      ['leasing', 'Leasing / splátka / odpis', '€/mes'],
+      ['poistenie', 'Poistenie (PZP, havarijné, CMR)', '€/mes'],
+      ['mzda', 'Vodič – celková cena práce', '€/mes', 'Hrubá mzda + odvody zamestnávateľa'],
+      ['rezia', 'Réžia (kancelária, účtovník, dispečing)', '€/mes', 'Podiel pripadajúci na toto auto'],
+      ['ine', 'Ostatné (GPS, tachograf, telefón, parkovanie)', '€/mes'],
+      ['dan', 'Daň z motorových vozidiel', '€/rok'],
+      ['znamky', 'Diaľničné známky, licencie, STK, EK', '€/rok'],
+    ]},
+    { group: 'Variabilné náklady', note: 'na každý najazdený km', items: [
+      ['spotreba', 'Priemerná spotreba nafty', 'l/100 km'],
+      ['nafta', 'Cena nafty bez DPH', '€/l'],
+      ['adblue', 'Spotreba AdBlue', 'l/100 km'],
+      ['adbluecena', 'Cena AdBlue', '€/l'],
+      ['pneu', 'Sada pneumatík (všetky nápravy)', '€'],
+      ['pneuKm', 'Životnosť pneumatík', 'km'],
+      ['servis', 'Servis, údržba, opravy', '€/km', 'Ročné náklady na servis ÷ ročné km'],
+    ]},
+    { group: 'Prevádzka', note: 'ako auto reálne jazdí', items: [
+      ['kmMes', 'Najazdené km za mesiac', 'km'],
+      ['dni', 'Dni na ceste za mesiac', 'dni'],
+      ['dieta', 'Diéty / stravné vodiča', '€/deň'],
+      ['zisk', 'Cieľový zisk (prirážka k nákladom)', '%'],
+    ]},
+  ];
+
+  const PRESETS = {
+    tahac: { name: 'Ťahač 40 t', leasing: 2100, poistenie: 420, mzda: 2300, rezia: 450, ine: 150, dan: 700, znamky: 250,
+      spotreba: 29, nafta: 1.38, adblue: 1.5, adbluecena: 0.45, pneu: 4800, pneuKm: 150000, servis: 0.045,
+      kmMes: 11000, dni: 21, dieta: 55, zisk: 12 },
+    solo: { name: 'Sólo 12 t', leasing: 1300, poistenie: 250, mzda: 2000, rezia: 300, ine: 100, dan: 400, znamky: 150,
+      spotreba: 20, nafta: 1.38, adblue: 1, adbluecena: 0.45, pneu: 2400, pneuKm: 120000, servis: 0.035,
+      kmMes: 7000, dni: 21, dieta: 30, zisk: 12 },
+    dodavka: { name: 'Dodávka 3,5 t', leasing: 650, poistenie: 120, mzda: 1900, rezia: 200, ine: 80, dan: 0, znamky: 150,
+      spotreba: 10.5, nafta: 1.38, adblue: 0.3, adbluecena: 0.45, pneu: 600, pneuKm: 60000, servis: 0.03,
+      kmMes: 9000, dni: 21, dieta: 45, zisk: 15 },
+  };
+
+  const LS_KEY = 'kilometrovnik.v1';
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const blankTrip = (vehId) => ({ trasa: '', vehId, cena: '', cenaTyp: 'spolu', km: '', prazdne: '', dni: '', myto: '', ine: '' });
+
+  function defaultState() {
+    const v = Object.assign({ id: uid(), example: true }, PRESETS.tahac, { name: 'Ťahač 01 (príklad)' });
+    return {
+      vehicles: [v], activeId: v.id, tab: 'vozidla', offers: [],
+      trip: { trasa: 'Žilina → Mníchov (príklad)', vehId: v.id, cena: '1050', cenaTyp: 'spolu', km: '620', prazdne: '80', dni: '', myto: '165', ine: '0' },
+    };
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !Array.isArray(s.vehicles) || !s.vehicles.length) return null;
+      s.offers = Array.isArray(s.offers) ? s.offers : [];
+      s.trip = Object.assign(blankTrip(s.vehicles[0].id), s.trip || {});
+      if (!s.vehicles.some(v => v.id === s.activeId)) s.activeId = s.vehicles[0].id;
+      return s;
+    } catch (e) { return null; }
+  }
+  function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* bez úložiska appka stále funguje */ } }
+
+  let state = load() || defaultState();
+
+  // ---------- Pomocné ----------
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function num(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    const n = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.'));
+    return isFinite(n) ? n : 0;
+  }
+  const fmt = (n, d = 0) => new Intl.NumberFormat('sk-SK', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  const eur = (n, d = 0) => fmt(n, d) + ' €';
+  const vehById = (id) => state.vehicles.find(v => v.id === id) || state.vehicles[0];
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2200);
+  }
+
+  // ---------- Výpočet nákladov vozidla ----------
+  function calc(v) {
+    const f = (k) => num(v[k]);
+    const km = Math.max(f('kmMes'), 1);
+    const dni = Math.max(f('dni'), 1);
+    const fix = [
+      ['Mzda vodiča', f('mzda')],
+      ['Leasing / splátka', f('leasing')],
+      ['Réžia', f('rezia')],
+      ['Poistenie', f('poistenie')],
+      ['Ostatné', f('ine')],
+      ['Dane, známky, licencie', (f('dan') + f('znamky')) / 12],
+    ];
+    const fixMes = fix.reduce((a, x) => a + x[1], 0);
+    const dietaMes = f('dieta') * dni;
+    const variable = [
+      ['Nafta', f('spotreba') / 100 * f('nafta')],
+      ['AdBlue', f('adblue') / 100 * f('adbluecena')],
+      ['Pneumatiky', f('pneuKm') > 0 ? f('pneu') / f('pneuKm') : 0],
+      ['Servis a údržba', f('servis')],
+    ];
+    const varKm = variable.reduce((a, x) => a + x[1], 0);
+    const fixKm = fixMes / km;
+    const dietaKm = dietaMes / km;
+    const totalKm = varKm + fixKm + dietaKm;
+    const items = [
+      ...variable.map(([n, x]) => ({ name: n, perKm: x, kind: 'var' })),
+      { name: 'Diéty vodiča', perKm: dietaKm, kind: 'fix' },
+      ...fix.map(([n, x]) => ({ name: n, perKm: x / km, kind: 'fix' })),
+    ].sort((a, b) => b.perKm - a.perKm);
+    return {
+      km, dni, fixMes, dietaMes, varKm, fixKm, dietaKm, totalKm, items,
+      totalMes: fixMes + dietaMes + varKm * km,
+      fixDen: fixMes / dni,
+      dieta: f('dieta'),
+      kmDen: km / dni,
+      zisk: f('zisk'),
+      costAt: (k) => varKm + (fixMes + dietaMes) / k,
+    };
+  }
+
+  // ---------- Výpočet jazdy ----------
+  function calcTrip(t) {
+    const v = vehById(t.vehId);
+    const c = calc(v);
+    const km = num(t.km), prazdne = num(t.prazdne);
+    const kmTotal = km + prazdne;
+    const autoDni = kmTotal > 0 ? Math.max(0.5, Math.ceil(kmTotal / c.kmDen * 2) / 2) : 0;
+    const dni = String(t.dni).trim() !== '' ? num(t.dni) : autoDni;
+    const varCost = c.varKm * kmTotal;
+    const fixCost = c.fixDen * dni;
+    const dietaCost = c.dieta * dni;
+    const myto = num(t.myto), ine = num(t.ine);
+    const naklady = varCost + fixCost + dietaCost + myto + ine;
+    const cena = t.cenaTyp === 'km' ? num(t.cena) * km : num(t.cena);
+    const zisk = cena - naklady;
+    const ziskPct = naklady > 0 ? zisk / naklady * 100 : 0;
+    const odporucana = naklady * (1 + c.zisk / 100);
+    let verdict = 'none';
+    if (cena > 0 && kmTotal > 0) verdict = ziskPct >= c.zisk ? 'good' : (zisk >= 0 ? 'warn' : 'bad');
+    return {
+      v, c, km, prazdne, kmTotal, autoDni, dni, varCost, fixCost, dietaCost, myto, ine, naklady, cena, zisk, ziskPct, odporucana, verdict,
+      ziskDen: dni > 0 ? zisk / dni : 0,
+      cenaKm: kmTotal > 0 ? cena / kmTotal : 0,
+      cenaKmLoaded: km > 0 ? cena / km : 0,
+      nakladKm: kmTotal > 0 ? naklady / kmTotal : 0,
+      minKmLoaded: km > 0 ? naklady / km : 0,
+      recKmLoaded: km > 0 ? odporucana / km : 0,
+      prazdnePct: kmTotal > 0 ? prazdne / kmTotal * 100 : 0,
+    };
+  }
+
+  // ---------- Záložky ----------
+  function setTab(tab) {
+    state.tab = tab; save();
+    document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
+    ['vozidla', 'jazda', 'ponuky'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
+    if (tab === 'jazda') renderTrip(true);
+    if (tab === 'ponuky') renderOffers();
+    if (tab === 'vozidla') renderVehicle(true);
+  }
+  document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+  // ---------- Záložka 1: vozidlo ----------
+  function vehOptions(sel) {
+    return state.vehicles.map(v => `<option value="${v.id}"${v.id === sel ? ' selected' : ''}>${esc(v.name || 'Bez názvu')}</option>`).join('');
+  }
+
+  function renderVehForm() {
+    const v = vehById(state.activeId);
+    $('#vehSelect').innerHTML = vehOptions(v.id);
+    $('#vehName').value = v.name || '';
+    $('#exampleNote').hidden = !v.example;
+    $('#vehForm').innerHTML = FIELDS.map(g => `
+      <fieldset>
+        <legend><h3>${g.group}</h3><span>${g.note}</span></legend>
+        <div class="fields">
+          ${g.items.map(([k, label, unit, hint]) => `
+            <div class="field">
+              <label class="lbl" for="f-${k}">${label}</label>
+              <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="f-${k}" data-k="${k}" value="${esc(v[k] ?? '')}"><span class="unit">${unit}</span></div>
+              ${hint ? `<div class="hint">${hint}</div>` : ''}
+            </div>`).join('')}
+        </div>
+      </fieldset>`).join('');
+    resetDelete();
+  }
+
+  function renderVehicle(full) {
+    if (full) renderVehForm();
+    const v = vehById(state.activeId);
+    const c = calc(v);
+    const ciel = c.totalKm * (1 + c.zisk / 100);
+    const maxItem = c.items[0];
+    const share = (x) => c.totalKm > 0 ? x / c.totalKm * 100 : 0;
+    const k1000 = c.costAt(c.km + 1000);
+    const kMinus = c.km > 2000 ? c.costAt(c.km - 1000) : null;
+    const fuelShare = share(c.items.find(i => i.name === 'Nafta').perKm);
+    const naftaCent = num(v.spotreba) / 100 * 0.10;
+
+    $('#vehResults').innerHTML = `
+      <div class="kpi-head"><span class="eyebrow">Náklad na 1 km</span><span class="chip">${esc(v.name || 'Vozidlo')}</span></div>
+      <div class="big">${fmt(c.totalKm, 3)} <small>€/km</small></div>
+      <div class="hint">pri ${fmt(c.km)} km a ${fmt(c.dni)} dňoch na ceste mesačne, bez mýta</div>
+      <div class="kpis">
+        <div><div class="v">${fmt(c.varKm, 3)}</div><div class="k">variabilné €/km</div></div>
+        <div><div class="v">${fmt(c.fixKm + c.dietaKm, 3)}</div><div class="k">fixné €/km</div></div>
+        <div><div class="v">${eur(c.fixDen + c.dieta)}</div><div class="k">fixné za deň</div></div>
+        <div><div class="v">${eur(c.fixMes + c.dietaMes)}</div><div class="k">fixné mesačne</div></div>
+        <div><div class="v">${eur(c.totalMes)}</div><div class="k">spolu mesačne</div></div>
+        <div><div class="v">${fmt(c.kmDen)}</div><div class="k">km za deň</div></div>
+      </div>
+      <div class="price-row">
+        <div><div class="k">Minimálna cena (nulový zisk)</div><div class="v">${fmt(c.totalKm, 2)} €/km</div></div>
+        <div class="rec"><div class="k">Odporúčaná cena (+${fmt(c.zisk)} % zisk)</div><div class="v">${fmt(ciel, 2)} €/km</div></div>
+      </div>
+
+      <div class="section-title"><h3>Z čoho sa skladá kilometer</h3><span>€/km</span></div>
+      <div class="bars">
+        ${c.items.map(i => `
+          <div class="bar">
+            <div class="name">${i.name}<em>${i.kind === 'var' ? 'var.' : 'fix'}</em></div>
+            <div class="val">${fmt(i.perKm, 3)} · ${fmt(share(i.perKm))} %</div>
+            <div class="track"><div class="fill${i.kind === 'fix' ? ' fix' : ''}" style="width:${Math.min(100, share(i.perKm) / share(maxItem.perKm) * 100).toFixed(1)}%"></div></div>
+          </div>`).join('')}
+      </div>
+
+      <div class="section-title"><h3>Náklad na km podľa nájazdu</h3><span>km za mesiac</span></div>
+      <div class="chart-box" id="chartBox"></div>
+
+      <div class="section-title"><h3>Kde ušetriť</h3></div>
+      <ul class="insights">
+        <li>Najväčšia položka je <b>${maxItem.name.toLowerCase()}</b>: ${fmt(share(maxItem.perKm))} % z každého kilometra.</li>
+        <li>Pri <b>+1 000 km</b> mesačne klesne náklad na <b>${fmt(k1000, 3)} €/km</b> (−${fmt(c.totalKm - k1000, 3)}).${kMinus ? ` Pri −1 000 km stúpne na ${fmt(kMinus, 3)} €/km.` : ''}</li>
+        <li>Každý deň státia ťa stojí <b>${eur(c.fixDen + c.dieta)}</b> fixných nákladov. Prázdne km a čakanie na nakládku sú najdrahšie.</li>
+        <li>Nafta tvorí ${fmt(fuelShare)} % nákladov. Lacnejšia nafta o 10 centov/l ušetrí <b>${fmt(naftaCent, 3)} €/km</b>, čo je ${eur(naftaCent * c.km)} mesačne.</li>
+      </ul>`;
+    drawChart(c);
+    renderFleet();
+  }
+
+  function drawChart(c) {
+    const box = $('#chartBox');
+    if (!box) return;
+    const W = 400, H = 190, m = { l: 44, r: 12, t: 12, b: 28 };
+    const step = c.km > 12000 ? 4000 : 2000;
+    let x0 = Math.max(1000, Math.floor(c.km * 0.4 / 1000) * 1000);
+    let x1 = Math.ceil(c.km * 1.7 / step) * step;
+    if (x1 - x0 < step * 2) x1 = x0 + step * 3;
+    const yTop = c.costAt(x0), yBot = c.costAt(x1);
+    const yStep = niceStep((yTop - yBot) / 4);
+    const y0 = Math.floor(yBot / yStep) * yStep, y1 = Math.ceil(yTop / yStep) * yStep;
+    const sx = (x) => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r);
+    const sy = (y) => m.t + (y1 - y) / (y1 - y0) * (H - m.t - m.b);
+    const pts = [];
+    for (let i = 0; i <= 60; i++) { const x = x0 + (x1 - x0) * i / 60; pts.push([sx(x), sy(c.costAt(x))]); }
+    const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    const area = line + ` L ${sx(x1).toFixed(1)} ${sy(y0)} L ${sx(x0).toFixed(1)} ${sy(y0)} Z`;
+    let grid = '';
+    for (let y = y0; y <= y1 + 1e-9; y += yStep) {
+      grid += `<line x1="${m.l}" x2="${W - m.r}" y1="${sy(y)}" y2="${sy(y)}" stroke="var(--line)" stroke-width="1"/>`;
+      grid += `<text x="${m.l - 6}" y="${sy(y) + 4}" text-anchor="end">${fmt(y, 2)}</text>`;
+    }
+    let xt = '';
+    for (let x = Math.ceil(x0 / step) * step; x <= x1; x += step) {
+      xt += `<text x="${sx(x)}" y="${H - 8}" text-anchor="middle">${fmt(x / 1000)} tis.</text>`;
+    }
+    const cx = sx(c.km), cy = sy(c.totalKm);
+    box.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Náklad na km klesá s vyšším mesačným nájazdom. Aktuálne ${fmt(c.totalKm, 3)} € pri ${fmt(c.km)} km.">
+        ${grid}${xt}
+        <path d="${area}" fill="var(--accent-soft)" stroke="none" opacity=".7"/>
+        <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+        <line id="cross" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>
+        <circle id="hoverDot" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
+        <circle cx="${cx}" cy="${cy}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+        <text x="${cx + 8}" y="${cy - 8}" style="fill:var(--ink);font-weight:600">teraz ${fmt(c.totalKm, 3)} €</text>
+        <rect id="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/>
+      </svg>
+      <div class="tip" hidden></div>`;
+    const svg = box.querySelector('svg'), tip = box.querySelector('.tip');
+    const cross = svg.querySelector('#cross'), dot = svg.querySelector('#hoverDot');
+    const move = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const px = (ev.clientX - r.left) / r.width * W;
+      let x = x0 + (px - m.l) / (W - m.l - m.r) * (x1 - x0);
+      x = Math.min(x1, Math.max(x0, Math.round(x / 500) * 500));
+      const y = c.costAt(x);
+      cross.setAttribute('x1', sx(x)); cross.setAttribute('x2', sx(x)); cross.setAttribute('visibility', 'visible');
+      dot.setAttribute('cx', sx(x)); dot.setAttribute('cy', sy(y)); dot.setAttribute('visibility', 'visible');
+      tip.hidden = false;
+      tip.style.left = (sx(x) / W * r.width) + 'px';
+      tip.style.top = (sy(y) / H * r.height) + 'px';
+      tip.innerHTML = `${fmt(x)} km/mes → <b>${fmt(y, 3)} €/km</b>`;
+    };
+    const leave = () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); };
+    svg.addEventListener('pointermove', move);
+    svg.addEventListener('pointerdown', move);
+    svg.addEventListener('pointerleave', leave);
+  }
+  function niceStep(raw) {
+    if (!(raw > 0)) return 0.1;
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const n = raw / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  }
+
+  function renderFleet() {
+    const rows = state.vehicles.map(v => ({ v, c: calc(v) }));
+    const panel = $('#fleetPanel');
+    if (rows.length < 2) {
+      panel.innerHTML = `<div class="section-title" style="margin-top:0"><h3>Porovnanie vozidiel</h3></div>
+        <p class="note" style="margin:0">Pridaj ďalšie auto (tlačidlo <b>Pridať vozidlo</b> hore) a tu uvidíš, ktoré jazdí najlacnejšie na kilometer.</p>`;
+      return;
+    }
+    const best = rows.reduce((a, b) => (b.c.totalKm < a.c.totalKm ? b : a));
+    panel.innerHTML = `<div class="section-title" style="margin-top:0"><h3>Porovnanie vozidiel</h3><span>zelené = najnižší náklad na km</span></div>
+      <div class="scroll"><table class="list">
+        <thead><tr><th>Vozidlo</th><th class="r">€/km</th><th class="r">Odporúčaná €/km</th><th class="r">Fixné za deň</th><th class="r">Fixné mesačne</th><th class="r">Km/mes</th></tr></thead>
+        <tbody>${rows.sort((a, b) => a.c.totalKm - b.c.totalKm).map(({ v, c }) => `
+          <tr class="${v.id === best.v.id ? 'best' : ''}">
+            <td><a href="#" data-pick="${v.id}" style="color:inherit;font-weight:${v.id === state.activeId ? 700 : 500}">${esc(v.name || 'Bez názvu')}</a></td>
+            <td class="r">${fmt(c.totalKm, 3)}</td>
+            <td class="r">${fmt(c.totalKm * (1 + c.zisk / 100), 2)}</td>
+            <td class="r">${eur(c.fixDen + c.dieta)}</td>
+            <td class="r">${eur(c.fixMes + c.dietaMes)}</td>
+            <td class="r">${fmt(c.km)}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>`;
+    panel.querySelectorAll('[data-pick]').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault(); state.activeId = a.dataset.pick; save(); renderVehicle(true); window.scrollTo({ top: 0 });
+    }));
+  }
+
+  $('#vehForm').addEventListener('input', (e) => {
+    const k = e.target.dataset.k; if (!k) return;
+    const v = vehById(state.activeId);
+    v[k] = e.target.value;
+    if (v.example) { v.example = false; $('#exampleNote').hidden = true; }
+    save(); renderVehicle(false);
+  });
+  $('#vehName').addEventListener('input', (e) => {
+    const v = vehById(state.activeId); v.name = e.target.value; save();
+    const opt = $('#vehSelect').querySelector(`option[value="${v.id}"]`); if (opt) opt.textContent = v.name || 'Bez názvu';
+    renderVehicle(false);
+  });
+  $('#vehSelect').addEventListener('change', (e) => { state.activeId = e.target.value; save(); renderVehicle(true); });
+  $('#addVeh').addEventListener('click', () => {
+    const p = $('#presetSelect').value;
+    const count = state.vehicles.length + 1;
+    const v = Object.assign({ id: uid() }, PRESETS[p], { name: PRESETS[p].name + ' ' + String(count).padStart(2, '0') });
+    state.vehicles.push(v); state.activeId = v.id; save(); renderVehicle(true);
+    toast('Vozidlo pridané – uprav jeho náklady');
+  });
+  $('#dupVeh').addEventListener('click', () => {
+    const src = vehById(state.activeId);
+    const v = Object.assign({}, src, { id: uid(), example: false, name: (src.name || 'Vozidlo') + ' (kópia)' });
+    state.vehicles.push(v); state.activeId = v.id; save(); renderVehicle(true);
+    toast('Vozidlo skopírované');
+  });
+  function resetDelete() {
+    $('#delWrap').innerHTML = `<button class="btn danger" id="delVeh">Zmazať</button>`;
+    $('#delVeh').addEventListener('click', askDelete);
+  }
+  function askDelete() {
+    if (state.vehicles.length < 2) { toast('Posledné vozidlo sa nedá zmazať'); return; }
+    $('#delWrap').innerHTML = `<span class="confirm">Zmazať vozidlo? <button class="btn small danger" id="delYes">Áno, zmazať</button><button class="btn small" id="delNo">Nie</button></span>`;
+    $('#delYes').addEventListener('click', () => {
+      const id = state.activeId;
+      state.vehicles = state.vehicles.filter(v => v.id !== id);
+      state.activeId = state.vehicles[0].id;
+      if (state.trip.vehId === id) state.trip.vehId = state.activeId;
+      save(); renderVehicle(true); toast('Vozidlo zmazané');
+    });
+    $('#delNo').addEventListener('click', resetDelete);
+  }
+
+  // ---------- Záložka 2: jazda ----------
+  function renderTrip(full) {
+    const t = state.trip;
+    if (!state.vehicles.some(v => v.id === t.vehId)) t.vehId = state.vehicles[0].id;
+    if (full) {
+      $('#t-veh').innerHTML = vehOptions(t.vehId);
+      document.querySelectorAll('#tripForm [data-t]').forEach(el => { if (el.tagName !== 'SELECT') el.value = t[el.dataset.t] ?? ''; });
+    }
+    document.querySelectorAll('[data-ct]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ct === t.cenaTyp ? 'true' : 'false'));
+    const r = calcTrip(t);
+    $('#t-dni').placeholder = r.autoDni ? fmt(r.autoDni, 1) : '';
+    $('#dniHint').textContent = r.autoDni ? `Prázdne = automaticky ${fmt(r.autoDni, 1)} d (${fmt(r.c.kmDen)} km/deň)` : 'Prázdne = vypočíta sa z km';
+
+    const V = {
+      good: ['Oplatí sa', `Zisk ${fmt(r.ziskPct, 1)} % je nad tvojím cieľom ${fmt(r.c.zisk)} %.`],
+      warn: ['Hraničné', `Pokryje náklady, ale zisk ${fmt(r.ziskPct, 1)} % je pod cieľom ${fmt(r.c.zisk)} %. Skús vyjednať aspoň ${eur(r.odporucana)}.`],
+      bad: ['Neoplatí sa', `Prerobíš ${eur(-r.zisk)}. Pod ${eur(r.naklady)} túto jazdu neber.`],
+      none: ['Zadaj km a cenu', 'Vyplň kilometre a ponúkanú cenu a hneď uvidíš, či sa jazda oplatí.'],
+    }[r.verdict];
+    const has = r.verdict !== 'none';
+
+    $('#tripResults').innerHTML = `
+      <div class="verdict ${r.verdict}"><div class="t"><i></i>${V[0]}</div><p>${V[1]}</p></div>
+      <div class="kpi-head"><span class="eyebrow">Zisk z jazdy</span><span class="chip">${esc(r.v.name || 'Vozidlo')}</span></div>
+      <div class="big ${has ? (r.zisk >= 0 ? 'pos' : 'neg') : ''}">${has ? (r.zisk >= 0 ? '+' : '−') + fmt(Math.abs(r.zisk)) : '—'} <small>€</small></div>
+      <div class="kpis">
+        <div><div class="v">${eur(r.naklady)}</div><div class="k">náklady jazdy</div></div>
+        <div><div class="v">${has ? eur(r.cena) : '—'}</div><div class="k">cena ponuky</div></div>
+        <div><div class="v ${r.ziskDen < 0 ? 'neg' : ''}">${has ? eur(r.ziskDen) : '—'}</div><div class="k">zisk za deň</div></div>
+        <div><div class="v">${fmt(r.kmTotal)}</div><div class="k">km spolu</div></div>
+        <div><div class="v">${has ? fmt(r.cenaKm, 2) : '—'}</div><div class="k">tržba €/km (všetky)</div></div>
+        <div><div class="v">${fmt(r.nakladKm, 2)}</div><div class="k">náklad €/km (všetky)</div></div>
+      </div>
+      <div class="price-row">
+        <div><div class="k">Minimálna cena</div><div class="v">${eur(r.naklady)}</div><div class="k">${fmt(r.minKmLoaded, 2)} €/km s nákladom</div></div>
+        <div class="rec"><div class="k">Odporúčaná cena (+${fmt(r.c.zisk)} %)</div><div class="v">${eur(r.odporucana)}</div><div class="k">${fmt(r.recKmLoaded, 2)} €/km s nákladom</div></div>
+      </div>
+      <div class="section-title"><h3>Rozpis nákladov</h3><span>€</span></div>
+      <div class="bars">
+        ${[
+          ['Nafta, AdBlue, pneu, servis', r.varCost, `${fmt(r.kmTotal)} km × ${fmt(r.c.varKm, 3)} €`, 'var'],
+          ['Fixné náklady auta', r.fixCost, `${fmt(r.dni, 1)} d × ${eur(r.c.fixDen)}`, 'fix'],
+          ['Diéty vodiča', r.dietaCost, `${fmt(r.dni, 1)} d × ${eur(r.c.dieta)}`, 'fix'],
+          ['Mýto', r.myto, '', 'var'],
+          ['Iné', r.ine, '', 'var'],
+        ].filter(x => x[1] > 0).map(([n, x, d, kind]) => `
+          <div class="bar">
+            <div class="name">${n}${d ? `<em>${d}</em>` : ''}</div>
+            <div class="val">${eur(x)}</div>
+            <div class="track"><div class="fill${kind === 'fix' ? ' fix' : ''}" style="width:${r.naklady > 0 ? (x / r.naklady * 100).toFixed(1) : 0}%"></div></div>
+          </div>`).join('')}
+      </div>
+      ${r.prazdnePct > 15 ? `<p class="note" style="margin:14px 0 0"><b>${fmt(r.prazdnePct)} % km je naprázdno.</b> Zváž ponuku s nakládkou bližšie alebo hľadaj spätný náklad.</p>` : ''}`;
+  }
+
+  $('#tripForm').addEventListener('input', (e) => {
+    const k = e.target.dataset.t; if (!k) return;
+    state.trip[k] = e.target.value; save(); renderTrip(false);
+  });
+  $('#tripForm').addEventListener('change', (e) => {
+    if (e.target.id === 't-veh') { state.trip.vehId = e.target.value; state.trip.dni = ''; $('#t-dni').value = ''; save(); renderTrip(false); }
+  });
+  $('#tripForm').addEventListener('submit', (e) => e.preventDefault());
+  document.querySelectorAll('[data-ct]').forEach(b => b.addEventListener('click', () => { state.trip.cenaTyp = b.dataset.ct; save(); renderTrip(false); }));
+  $('#newTrip').addEventListener('click', () => { state.trip = blankTrip(state.trip.vehId); save(); renderTrip(true); $('#t-trasa').focus(); });
+  $('#saveOffer').addEventListener('click', () => {
+    const r = calcTrip(state.trip);
+    if (r.verdict === 'none') { toast('Najprv zadaj km a cenu ponuky'); return; }
+    state.offers.push({
+      id: uid(), trasa: state.trip.trasa || 'Ponuka ' + (state.offers.length + 1), vozidlo: r.v.name || '',
+      km: r.km, kmTotal: r.kmTotal, dni: r.dni, naklady: r.naklady, cena: r.cena, zisk: r.zisk, ziskPct: r.ziskPct,
+      ziskDen: r.ziskDen, cenaKm: r.cenaKm, verdict: r.verdict,
+    });
+    save(); updateCount(); toast('Ponuka uložená do porovnania');
+  });
+
+  // ---------- Záložka 3: porovnanie ----------
+  function updateCount() { $('#offerCount').textContent = state.offers.length ? '(' + state.offers.length + ')' : ''; }
+  function renderOffers() {
+    const p = $('#offersPanel');
+    if (!state.offers.length) {
+      p.innerHTML = `<div class="empty"><h3>Zatiaľ žiadne ponuky</h3><p>V záložke <b>Ocenenie jazdy</b> zadaj ponuku z burzy a klikni <b>Uložiť do porovnania</b>. Tu ich uvidíš zoradené podľa zisku za deň.</p>
+        <button class="btn primary" id="goTrip">Oceniť jazdu</button></div>`;
+      $('#goTrip').addEventListener('click', () => setTab('jazda'));
+      return;
+    }
+    const rows = state.offers.slice().sort((a, b) => b.ziskDen - a.ziskDen);
+    const label = { good: 'Oplatí sa', warn: 'Hraničné', bad: 'Neoplatí sa' };
+    p.innerHTML = `<div class="section-title" style="margin-top:0"><h3>Porovnanie ponúk</h3><span>zoradené podľa zisku za deň, najlepšia hore</span></div>
+      <div class="scroll"><table class="list">
+        <thead><tr><th>Trasa</th><th>Vozidlo</th><th class="r">Km spolu</th><th class="r">Dni</th><th class="r">Náklady</th><th class="r">Cena</th><th class="r">Zisk</th><th class="r">Zisk/deň</th><th class="r">€/km</th><th>Hodnotenie</th><th></th></tr></thead>
+        <tbody>${rows.map((o, i) => `
+          <tr class="${i === 0 && o.zisk > 0 ? 'best' : ''}">
+            <td>${esc(o.trasa)}</td><td>${esc(o.vozidlo)}</td>
+            <td class="r">${fmt(o.kmTotal)}</td><td class="r">${fmt(o.dni, 1)}</td>
+            <td class="r">${eur(o.naklady)}</td><td class="r">${eur(o.cena)}</td>
+            <td class="r ${o.zisk >= 0 ? 'pos' : 'neg'}">${eur(o.zisk)}</td>
+            <td class="r ${o.ziskDen >= 0 ? 'pos' : 'neg'}"><b>${eur(o.ziskDen)}</b></td>
+            <td class="r">${fmt(o.cenaKm, 2)}</td>
+            <td><span class="pill ${o.verdict}"><i></i>${label[o.verdict] || ''}</span></td>
+            <td><button class="btn small" data-del="${o.id}" aria-label="Odstrániť ponuku">Odstrániť</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="toolbar" style="margin:14px 0 0;justify-content:space-between">
+        <p class="hint" style="margin:0;max-width:60ch">Zisk za deň je najlepšie meradlo pri výbere: dlhšia jazda s vyšším ziskom môže byť horšia než dve kratšie.</p>
+        <span id="clearWrap"><button class="btn danger" id="clearOffers">Vymazať všetky</button></span>
+      </div>`;
+    p.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+      state.offers = state.offers.filter(o => o.id !== b.dataset.del); save(); updateCount(); renderOffers();
+    }));
+    $('#clearOffers').addEventListener('click', () => {
+      $('#clearWrap').innerHTML = `<span class="confirm">Vymazať všetky ponuky? <button class="btn small danger" id="clrYes">Áno</button><button class="btn small" id="clrNo">Nie</button></span>`;
+      $('#clrYes').addEventListener('click', () => { state.offers = []; save(); updateCount(); renderOffers(); });
+      $('#clrNo').addEventListener('click', renderOffers);
+    });
+  }
+
+  // ---------- Štart ----------
+  updateCount();
+  setTab(['vozidla', 'jazda', 'ponuky'].includes(state.tab) ? state.tab : 'vozidla');
+})();
+</script>
+</body>
+</html>

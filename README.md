@@ -54,3 +54,29 @@ Kľúč sa ukladá len v tvojom prehliadači na tvojom počítači. **Nikomu ho 
 | „Prístup k mikrofónu bol zamietnutý“ | Klikni na ikonu vľavo od adresy → Mikrofón → Povoliť, potom obnov stránku. |
 | „Neplatný API kľúč“ | Skontroluj, či si skopíroval celý kľúč bez medzier. |
 | „Na účte nie je kredit“ | Dobi kredit v Anthropic Console → Billing. |
+
+---
+
+# 🚛 Kilometrovník dopravcu (`kilometrovnik/`)
+
+Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrétneho auta**, a podľa toho ukáže, či sa ponuka (napr. z burzy prepráv) oplatí. Spustíš ju dvojklikom na `kilometrovnik/index.html` (funguje v akomkoľvek prehliadači, netreba internet ani API kľúč; bez internetu sa len použije náhradné písmo).
+
+## Tri záložky
+
+1. **Náklady vozidla** – zadáš fixné náklady (leasing, poistenie, vodič, réžia, dane…), variabilné (nafta, AdBlue, pneumatiky, servis) a prevádzku (km a dni za mesiac, diéty, cieľový zisk). Appka ukáže:
+   - **náklad na 1 km**, minimálnu a odporúčanú cenu za km,
+   - z čoho sa kilometer skladá (zoradené od najväčšej položky),
+   - graf, ako klesá náklad na km s vyšším mesačným nájazdom,
+   - tipy, kde ušetriť, a porovnanie všetkých áut (najlacnejšie zvýraznené).
+2. **Ocenenie jazdy** – zadáš ponuku: km s nákladom, km naprázdno, mýto, iné náklady a cenu (spolu alebo €/km). Appka vypočíta náklady jazdy, zisk, zisk za deň a dá verdikt **Oplatí sa / Hraničné / Neoplatí sa** + minimálnu a odporúčanú cenu.
+3. **Porovnanie ponúk** – uložené ponuky zoradené podľa **zisku za deň**, aby si vybral tú najlepšiu.
+
+## Ako počíta
+
+- **Variabilné €/km** = nafta (spotreba × cena) + AdBlue + pneumatiky (cena sady ÷ životnosť) + servis.
+- **Fixné €/km** = (mesačné fixné náklady + diéty × dni) ÷ km za mesiac.
+- **Náklady jazdy** = variabilné €/km × všetky km (aj prázdne) + fixné náklady za deň × počet dní + diéty × dni + mýto + iné.
+  Fixné náklady sa do jazdy počítajú **podľa dní**, lebo leasing, poistenie aj mzda bežia aj keď auto stojí alebo čaká. Počet dní sa dopočíta z priemerných km za deň, alebo ho zadáš ručne.
+- **Odporúčaná cena** = náklady × (1 + cieľový zisk %).
+
+Všetky sumy zadávaj **bez DPH**. Dáta sa ukladajú iba v tvojom prehliadači (`localStorage`).
