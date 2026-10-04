@@ -93,7 +93,7 @@ sumy na **Mena €**.
 - Stĺpcový graf: os `Jazdy[dovod]` (filter `Jazdy[typ]` = *prazdna*), hodnota `Prázdne jazdy – náklady`.
 - Čiarový graf: os `Kalendar[Mesiac]`, hodnota `Km naprázdno %`.
 - Čakanie: karty `Čakanie – hodiny`, `Čakanie – náklady`, `Zdržné vyúčtované`, `Čakanie – nepokryté náklady`;
-  pruhový graf os `Firmy[firma]`, hodnota `Čakanie – hodiny` (u ktorých zákazníkov sa najviac čaká); pruhový graf os `Jazdy[dovod]` ukáže, koľko času a peňazí stojí čakanie na nakládke, vykládke a na colnici.
+  pruhový graf os `Firmy[firma]`, hodnota `Čakanie – hodiny` (u ktorých zákazníkov sa najviac čaká); pruhový graf os `Jazdy[dovod]` ukáže, koľko času a peňazí stojí čakanie na nakládke, vykládke, na colnici a na prekládke.
 
 ## 6. Aktualizácia
 

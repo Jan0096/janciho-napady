@@ -457,6 +457,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
                   <option>Čakanie na nakládku</option>
                   <option>Čakanie na vykládku</option>
                   <option>Čakanie na colnici</option>
+                  <option>Čakanie na prekládke</option>
                   <option>Iné</option>
                 </select>
               </div>
@@ -1075,9 +1076,9 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     $('#eTitle').textContent = r.wait ? e.duvod : 'Prázdna jazda';
     $('#eSub').textContent = r.wait ? 'auto stojí, náklady bežia' : 'presun bez nákladu, bez tržby';
     $('#eTrasaLbl').textContent = r.wait ? 'Miesto' : 'Odkiaľ → kam';
-    const customs = /colnic/i.test(e.duvod || '');
-    $('#e-trasa').placeholder = customs ? 'napr. colnica Vyšné Nemecké' : r.wait ? 'napr. sklad Varšava' : 'napr. Mníchov → Žilina';
-    $('#eIneLbl').textContent = customs ? 'Poplatky (colná deklarácia, špeditér, parkovanie)' : 'Iné náklady';
+    const customs = /colnic/i.test(e.duvod || ''), transship = /prekl/i.test(e.duvod || '');
+    $('#e-trasa').placeholder = customs ? 'napr. colnica Vyšné Nemecké' : transship ? 'napr. prekladisko Čierna nad Tisou' : r.wait ? 'napr. sklad Varšava' : 'napr. Mníchov → Žilina';
+    $('#eIneLbl').textContent = customs ? 'Poplatky (colná deklarácia, špeditér, parkovanie)' : transship ? 'Poplatky (prekládka, manipulácia, parkovanie)' : 'Iné náklady';
     $('#saveEmpty').textContent = r.wait ? 'Zapísať čakanie' : 'Zapísať prázdnu jazdu';
     if (r.wait) { renderWaitResult(r); return; }
     $('#e-dni').placeholder = r.autoDni ? fmt(r.autoDni, 1) : '';
@@ -1127,7 +1128,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         ${[
           ['Fixné náklady auta', r.fixCost, `${fmt(r.hodiny, 1)} h × ${eur(r.c.fixDen / 24, 2)}`, 'fix'],
           ['Diéty vodiča', r.dietaCost, `${fmt(r.hodiny, 1)} h × ${eur(r.c.dieta / 24, 2)}`, 'fix'],
-          [/colnic/i.test(state.empty.duvod || '') ? 'Colné poplatky a iné' : 'Iné', r.ine, '', 'var'],
+          [/colnic/i.test(state.empty.duvod || '') ? 'Colné poplatky a iné' : /prekl/i.test(state.empty.duvod || '') ? 'Poplatky za prekládku a iné' : 'Iné', r.ine, '', 'var'],
         ].filter(x => x[1] > 0).map(([n, x, d, kind]) => `
           <div class="bar">
             <div class="name">${n}${d ? `<em>${d}</em>` : ''}</div>
