@@ -54,3 +54,9 @@ Kľúč sa ukladá len v tvojom prehliadači na tvojom počítači. **Nikomu ho 
 | „Prístup k mikrofónu bol zamietnutý“ | Klikni na ikonu vľavo od adresy → Mikrofón → Povoliť, potom obnov stránku. |
 | „Neplatný API kľúč“ | Skontroluj, či si skopíroval celý kľúč bez medzier. |
 | „Na účte nie je kredit“ | Dobi kredit v Anthropic Console → Billing. |
+
+---
+
+## 🥖 Ďalšia aplikácia: Pekáreň
+
+V priečinku [`pekaren/`](pekaren/) je aplikácia v Pythone pre pekárov – príjem surovín, faktúry, náklady prevádzky a finančná analýza (zisk/strata). Návod je v [`pekaren/README.md`](pekaren/README.md).
