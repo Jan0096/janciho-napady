@@ -1,0 +1,1002 @@
+<title>Pekáreň – financie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: pracovný nástroj – hlavička so záložkami, pod ňou jedna pracovná plocha; prehľad = súhrn hore, detail dole. */
+:root {
+  --bg: #f4f4f1; --surface: #ffffff; --surface-2: #ecebe6; --line: #dcdad2;
+  --fg: #1c1b18; --fg-2: #55534c; --fg-3: #85827a;
+  --accent: #1f4e8c; --accent-fg: #ffffff; --accent-soft: #e3ebf6;
+  --good: #1e7a46; --good-soft: #e1f2e7; --bad: #b3261e; --bad-soft: #fbe5e3;
+  --warn: #8a5a00; --warn-soft: #fbefd2;
+  --series-1: #2a78d6; --series-2: #eb6834; --bar: #2a78d6;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161614; --surface: #1f1f1c; --surface-2: #2a2a26; --line: #3a3934;
+  --fg: #f1efe8; --fg-2: #c3c0b5; --fg-3: #94918a;
+  --accent: #7fa8e0; --accent-fg: #0f1b2d; --accent-soft: #22324a;
+  --good: #6cc895; --good-soft: #1d3326; --bad: #f08a82; --bad-soft: #3d201d;
+  --warn: #e8b553; --warn-soft: #3a2e14;
+  --series-1: #3987e5; --series-2: #d95926; --bar: #3987e5; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #161614; --surface: #1f1f1c; --surface-2: #2a2a26; --line: #3a3934;
+  --fg: #f1efe8; --fg-2: #c3c0b5; --fg-3: #94918a;
+  --accent: #7fa8e0; --accent-fg: #0f1b2d; --accent-soft: #22324a;
+  --good: #6cc895; --good-soft: #1d3326; --bad: #f08a82; --bad-soft: #3d201d;
+  --warn: #e8b553; --warn-soft: #3a2e14;
+  --series-1: #3987e5; --series-2: #d95926; --bar: #3987e5; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font-body); margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 0 48px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: 1.5rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.2rem; }
+h3 { font-size: 1rem; }
+.num, td.n, th.n { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.muted { color: var(--fg-3); }
+.small { font-size: 0.85rem; }
+
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.topbar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-block: 14px 8px; }
+.topbar .sub { color: var(--fg-3); font-size: 0.85rem; }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs button { font: 500 0.92rem var(--font-body); background: none; border: 0; border-bottom: 3px solid transparent; color: var(--fg-2); padding: 8px 12px; cursor: pointer; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+nav.tabs button:hover { color: var(--fg); }
+
+.banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--r); margin-top: 16px; font-size: 0.9rem; }
+.banner.info { background: var(--accent-soft); }
+.banner.warn { background: var(--warn-soft); color: var(--fg); }
+
+section.tab { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding-top: 20px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+
+.period { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.kpi .lbl { font-size: 0.78rem; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.kpi .val { font-family: var(--font-display); font-size: 1.45rem; font-variant-numeric: tabular-nums; }
+.kpi .hint { font-size: 0.8rem; color: var(--fg-3); }
+.kpi.result { border-width: 2px; }
+.kpi.result.plus { border-color: var(--good); } .kpi.result.minus { border-color: var(--bad); }
+.plus { color: var(--good); } .minus { color: var(--bad); }
+
+.alerts { display: grid; gap: 6px; }
+.alert { padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; display: flex; gap: 8px; }
+.alert.bad { background: var(--bad-soft); } .alert.warn { background: var(--warn-soft); }
+.alert b { white-space: nowrap; }
+
+.tw { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { font-weight: 600; color: var(--fg-2); font-size: 0.8rem; }
+tr.sum td { font-weight: 600; border-top: 2px solid var(--line); }
+tr.sub td:first-child { padding-left: 24px; color: var(--fg-2); }
+td.act { text-align: right; white-space: nowrap; }
+
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 500; white-space: nowrap; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.neutral { background: var(--surface-2); color: var(--fg-2); }
+
+form { display: grid; gap: 12px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+label { display: grid; gap: 4px; font-size: 0.82rem; color: var(--fg-2); min-width: 0; }
+input, select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; width: 100%; min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button.btn { font: 500 0.9rem var(--font-body); border-radius: 7px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+button.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button.btn:hover { filter: brightness(0.96); }
+button.link { font: inherit; font-size: 0.82rem; background: none; border: 0; color: var(--fg-3); cursor: pointer; padding: 2px 6px; border-radius: 5px; }
+button.link:hover { color: var(--bad); background: var(--bad-soft); }
+button.link.ok:hover { color: var(--good); background: var(--good-soft); }
+button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight: 600; }
+
+.items { display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: end; padding: 10px; background: var(--surface-2); border-radius: 8px; }
+@media (max-width: 560px) { .item { grid-template-columns: 1fr 1fr; } .item .full { grid-column: 1 / -1; } }
+.total { font-weight: 600; font-variant-numeric: tabular-nums; }
+.checks { display: grid; gap: 4px; max-height: 220px; overflow-y: auto; padding: 8px; border: 1px solid var(--line); border-radius: 7px; }
+.checks label { display: flex; gap: 8px; align-items: center; font-size: 0.85rem; color: var(--fg); }
+.checks input { width: auto; }
+
+.legend { display: flex; gap: 16px; font-size: 0.82rem; color: var(--fg-2); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--fg-3); font: 11px var(--font-body); font-variant-numeric: tabular-nums; }
+.chart .grid line { stroke: var(--line); }
+.chart rect.hit { fill: transparent; cursor: default; }
+.chart rect.hit:hover { fill: var(--surface-2); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; box-shadow: 0 4px 16px rgb(0 0 0 / 0.12); min-width: 170px; }
+.tip div { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+
+.hbar { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) 7.5em 4em; gap: 10px; align-items: center; font-size: 0.88rem; padding-block: 4px; }
+.hbar .track { height: 10px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.hbar .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; }
+.empty { padding: 20px; text-align: center; color: var(--fg-3); border: 1px dashed var(--line); border-radius: 8px; font-size: 0.9rem; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; z-index: 20; max-width: calc(100% - 32px); }
+.toast.err { background: var(--bad); color: #fff; }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: up .2s ease-out; } @keyframes up { from { transform: translate(-50%, 8px); opacity: 0; } } }
+</style>
+
+<header class="top">
+  <div class="wrap" style="padding-block: 0;">
+    <div class="topbar">
+      <h1>🥖 Pekáreň – financie</h1>
+      <span class="sub" id="syncState">Načítavam údaje…</span>
+    </div>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="prehlad">Prehľad a analýza</button>
+      <button role="tab" data-tab="prijem">Príjem surovín</button>
+      <button role="tab" data-tab="faktury">Faktúry</button>
+      <button role="tab" data-tab="naklady">Náklady prevádzky</button>
+      <button role="tab" data-tab="trzby">Tržby</button>
+      <button role="tab" data-tab="sklad">Sklad a dodávatelia</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="banner info" id="demoBanner" hidden>
+    <span>Zobrazujú sa <b>ukážkové údaje</b> vymyslenej pekárne (apríl – september 2026). Keď začnete zadávať vlastné údaje, ukážku zmažte.</span>
+    <button class="btn" id="btnClearDemo">Zmazať ukážkové údaje</button>
+  </div>
+  <div class="banner warn" id="localBanner" hidden>
+    <span>Údaje sa teraz neukladajú – po zatvorení stránky sa stratia. Aby sa ukladali, otvorte stránku na claude.ai prihlásený.</span>
+  </div>
+
+  <!-- ===================== PREHĽAD ===================== -->
+  <section class="tab" id="tab-prehlad">
+    <div class="panel-head">
+      <h2>Finančná analýza prevádzky</h2>
+      <div class="period">
+        <label>Od mesiaca<input type="month" id="perOd"></label>
+        <label>Do mesiaca<input type="month" id="perDo"></label>
+        <div class="btns">
+          <button class="btn" data-per="6">Posledných 6 mes.</button>
+          <button class="btn" data-per="rok">Tento rok</button>
+          <button class="btn" data-per="1">Posledný mesiac</button>
+        </div>
+      </div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="alerts" id="alerts"></div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Výkaz ziskov a strát</h3>
+        <div class="tw"><table id="vzs"></table></div>
+      </div>
+      <div class="panel">
+        <h3>Ukazovatele</h3>
+        <div class="tw"><table id="ukaz"></table></div>
+        <p class="small muted" style="margin:0">Bod zvratu = tržby, pri ktorých je zisk nulový. Bezpečnostná rezerva = o koľko môžu tržby klesnúť, kým prevádzka skončí v strate. Všetky sumy sú bez DPH.</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Tržby a náklady po mesiacoch</h3>
+        <div class="legend"><span><i style="background:var(--series-1)"></i>Tržby</span><span><i style="background:var(--series-2)"></i>Náklady spolu</span></div></div>
+      <div class="chart" id="chart"></div>
+      <div class="tw"><table id="mesTab"></table></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Štruktúra nákladov</h3><div id="struktura"></div></div>
+      <div class="panel"><h3>Nákupné ceny surovín</h3><div class="tw"><table id="ceny"></table></div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Záväzky voči dodávateľom</h3><div id="zavazky"></div></div>
+      <div class="panel"><h3>Leasingy – zostáva zaplatiť</h3><div id="leasingy"></div></div>
+    </div>
+  </section>
+
+  <!-- ===================== PRÍJEM ===================== -->
+  <section class="tab" id="tab-prijem" hidden>
+    <div class="panel">
+      <h2>Nová príjemka</h2>
+      <form id="fPrijem">
+        <div class="fields">
+          <label>Dátum príjmu<input type="date" id="prDatum" required></label>
+          <label>Dodávateľ<select id="prDod" required></select></label>
+          <label id="prDodNovyL" hidden>Názov nového dodávateľa<input id="prDodNovy"></label>
+          <label>Faktúra k dodávke<select id="prFakt"></select></label>
+        </div>
+        <div class="items" id="prItems"></div>
+        <div class="btns" style="justify-content: space-between;">
+          <button type="button" class="btn" id="prAddItem">+ Pridať položku</button>
+          <span>Spolu bez DPH: <span class="total" id="prTotal">0,00 €</span></span>
+        </div>
+        <label>Poznámka<input id="prPozn" placeholder="napr. chýbali 2 vrecia múky"></label>
+        <div class="btns"><button class="btn primary" type="submit">Uložiť príjemku</button></div>
+      </form>
+    </div>
+    <div class="panel">
+      <h3>Prijaté dodávky</h3>
+      <div class="tw"><table id="prList"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================== FAKTÚRY ===================== -->
+  <section class="tab" id="tab-faktury" hidden>
+    <div class="kpis" id="fKpis"></div>
+    <div class="grid2">
+      <div class="panel">
+        <h2>Nová faktúra za suroviny</h2>
+        <form id="fFakt">
+          <div class="fields">
+            <label>Dodávateľ<select id="faDod" required></select></label>
+            <label>Číslo faktúry<input id="faCislo" required></label>
+            <label>Dátum vystavenia<input type="date" id="faVyst" required></label>
+            <label>Dátum splatnosti<input type="date" id="faSpl" required></label>
+            <label>Suma bez DPH (€)<input id="faSuma" inputmode="decimal" required></label>
+            <label>DPH (€)<input id="faDph" inputmode="decimal" placeholder="20 % sa doplní samo"></label>
+          </div>
+          <div>
+            <div class="small muted" style="margin-bottom:4px">Príjemky, ktoré táto faktúra pokrýva (aplikácia porovná sumy):</div>
+            <div class="checks" id="faPrij"></div>
+          </div>
+          <div class="btns"><button class="btn primary" type="submit">Uložiť faktúru</button><button type="button" class="btn" id="faFill">Doplniť sumu z označených príjemok</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Ako funguje kontrola faktúr</h3>
+        <p style="margin:0" class="small">Ku každej faktúre označte príjemky (dodávky), ktoré pokrýva. Ak dodávateľ vyfakturoval inú sumu, než koľko ste podľa príjemok reálne prevzali, faktúra dostane štítok <span class="pill warn">nesúlad</span>. Faktúry po dátume splatnosti majú štítok <span class="pill bad">po splatnosti</span>.</p>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Faktúry</h3>
+      <div class="tw"><table id="faList"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================== NÁKLADY ===================== -->
+  <section class="tab" id="tab-naklady" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <h2>Pravidelný mesačný náklad</h2>
+        <p class="small muted" style="margin:0">Nájom, mzdy a odvody, účtovníctvo, poistenie, paušály…</p>
+        <form id="fPrav">
+          <div class="fields">
+            <label style="grid-column:1/-1">Názov<input id="pvNazov" required placeholder="napr. Nájom prevádzky"></label>
+            <label>Kategória<select id="pvKat"></select></label>
+            <label>Typ<select id="pvTyp"></select></label>
+            <label>Mesačne (€ bez DPH)<input id="pvSuma" inputmode="decimal" required></label>
+            <label>Platí od<input type="date" id="pvOd" required></label>
+            <label>Platí do (nepovinné)<input type="date" id="pvDo"></label>
+          </div>
+          <div class="btns"><button class="btn primary" type="submit">Uložiť</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>Leasing stroja</h2>
+        <form id="fLeas">
+          <div class="fields">
+            <label style="grid-column:1/-1">Stroj<input id="lsStroj" required placeholder="napr. Etážová pec"></label>
+            <label>Mesačná splátka (€)<input id="lsSplatka" inputmode="decimal" required></label>
+            <label>Prvá splátka<input type="date" id="lsOd" required></label>
+            <label>Počet splátok<input type="number" id="lsPocet" min="1" value="48" required></label>
+          </div>
+          <div class="btns"><button class="btn primary" type="submit">Uložiť leasing</button></div>
+        </form>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Pravidelné náklady a leasingy</h3>
+      <div class="tw"><table id="pvList"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Jednorazový náklad</h2>
+      <p class="small muted" style="margin:0">Faktúra za elektrinu, plyn, vodu, oprava stroja, obaly, palivo…</p>
+      <form id="fNakl">
+        <div class="fields">
+          <label>Dátum<input type="date" id="nkDatum" required></label>
+          <label>Popis<input id="nkNazov" required placeholder="napr. Elektrina – september"></label>
+          <label>Kategória<select id="nkKat"></select></label>
+          <label>Typ<select id="nkTyp"></select></label>
+          <label>Suma (€ bez DPH)<input id="nkSuma" inputmode="decimal" required></label>
+        </div>
+        <div class="btns"><button class="btn primary" type="submit">Uložiť náklad</button></div>
+      </form>
+      <div class="tw"><table id="nkList"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================== TRŽBY ===================== -->
+  <section class="tab" id="tab-trzby" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <h2>Zapísať tržbu</h2>
+        <form id="fTrz">
+          <div class="fields">
+            <label>Dátum<input type="date" id="tzDatum" required></label>
+            <label>Predajný kanál<select id="tzKanal"></select></label>
+            <label>Tržba bez DPH (€)<input id="tzSuma" inputmode="decimal" required></label>
+          </div>
+          <div class="btns"><button class="btn primary" type="submit">Uložiť tržbu</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Tržby po mesiacoch</h3>
+        <div class="tw"><table id="tzMes"></table></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Posledné zápisy</h3>
+      <div class="tw"><table id="tzList"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================== SKLAD ===================== -->
+  <section class="tab" id="tab-sklad" hidden>
+    <div class="panel">
+      <h2>Stav skladu</h2>
+      <div class="tw"><table id="skList"></table></div>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Zapísať spotrebu vo výrobe</h3>
+        <form id="fSpot">
+          <div class="fields">
+            <label>Dátum<input type="date" id="spDatum" required></label>
+            <label>Surovina<select id="spSur" required></select></label>
+            <label>Množstvo<input id="spMn" inputmode="decimal" required></label>
+          </div>
+          <div class="btns"><button class="btn primary" type="submit">Zapísať</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Nová surovina</h3>
+        <form id="fSur">
+          <div class="fields">
+            <label>Názov<input id="suNazov" required></label>
+            <label>Jednotka<select id="suJed"><option>kg</option><option>l</option><option>ks</option><option>bal</option></select></label>
+            <label>Minimálna zásoba<input id="suMin" inputmode="decimal" value="0"></label>
+          </div>
+          <div class="btns"><button class="btn primary" type="submit">Pridať surovinu</button></div>
+        </form>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Dodávatelia</h3>
+      <form id="fDod">
+        <div class="fields">
+          <label>Názov<input id="ddNazov" required></label>
+          <label>IČO<input id="ddIco"></label>
+          <label>Kontakt<input id="ddKont" placeholder="telefón / e-mail"></label>
+        </div>
+        <div class="btns"><button class="btn primary" type="submit">Pridať dodávateľa</button></div>
+      </form>
+      <div class="tw"><table id="ddList"></table></div>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+// ------------------------------------------------------------- konštanty
+const KAT = {
+  najom: ["Nájom", "fixny"],
+  energie: ["Energie (elektrina, plyn, voda)", "variabilny"],
+  mzdy: ["Mzdy a odvody", "fixny"],
+  leasing: ["Leasing strojov", "fixny"],
+  pohyblive: ["Pohyblivé náklady (obaly, doprava…)", "variabilny"],
+  udrzba: ["Údržba a opravy", "fixny"],
+  ostatne: ["Ostatné", "fixny"],
+};
+const TYP = { fixny: "fixný", variabilny: "variabilný" };
+const KANALY = ["predajňa", "veľkoodber", "rozvoz", "iné"];
+const MES = ["jan", "feb", "mar", "apr", "máj", "jún", "júl", "aug", "sep", "okt", "nov", "dec"];
+const LIMIT = { suroviny: 0.35, mzdy: 0.35, najom: 0.12 };
+const COLLS = ["suroviny", "dodavatelia", "prijemky", "faktury", "pravidelne", "naklady", "trzby", "spotreba"];
+
+// ------------------------------------------------------------- formátovanie
+const fEur = new Intl.NumberFormat("sk-SK", { style: "currency", currency: "EUR" });
+const fNum = new Intl.NumberFormat("sk-SK", { maximumFractionDigits: 1 });
+const eur = (x) => (x == null || !isFinite(x) ? "–" : fEur.format(x));
+const pct = (x) => (x == null || !isFinite(x) ? "–" : (x * 100).toFixed(1).replace(".", ",") + " %");
+const num = (x) => fNum.format(x);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const dtSk = (s) => { if (!s) return "–"; const [y, m, d] = s.split("-"); return `${+d}.\u00a0${+m}.\u00a0${y}`; };
+const parseNum = (s) => { const v = parseFloat(String(s).replace(/\s/g, "").replace(",", ".")); return isFinite(v) ? v : NaN; };
+const $ = (id) => document.getElementById(id);
+
+// ------------------------------------------------------------- dátumy
+const pad = (n) => String(n).padStart(2, "0");
+const iso = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
+const ymd = (s) => s.split("-").map(Number);
+const dim = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+const eom = (y, m) => iso(y, m, dim(y, m));
+const today = () => { const d = new Date(); return iso(d.getFullYear(), d.getMonth() + 1, d.getDate()); };
+const dni = (a, b) => { const [ay, am, ad] = ymd(a), [by, bm, bd] = ymd(b); return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 864e5) + 1; };
+const addDays = (s, n) => { const [y, m, d] = ymd(s); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+const addMonths = (s, n) => { const [y0, m0, d] = ymd(s); const t = m0 - 1 + n; const y = y0 + Math.floor(t / 12), m = ((t % 12) + 12) % 12 + 1; return iso(y, m, Math.min(d, dim(y, m))); };
+const months = (od, dok) => { const [ay, am] = ymd(od), [by, bm] = ymd(dok); const r = []; let y = ay, m = am; while (y < by || (y === by && m <= bm)) { r.push([y, m]); if (++m > 12) { m = 1; y++; } } return r; };
+const mx = (a, b) => (a > b ? a : b), mn = (a, b) => (a < b ? a : b);
+const newId = (p) => p + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+// ------------------------------------------------------------- úložisko
+const S = Object.fromEntries(COLLS.map((c) => [c, []]));
+const loaded = new Set();
+let db = null;
+let readOnly = false;
+
+function toast(msg, err) {
+  const t = document.createElement("div");
+  t.className = "toast" + (err ? " err" : "");
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), err ? 6000 : 2500);
+}
+function dbErr(e) {
+  if (e && e.msg) return e.msg;
+  const c = e && e.code;
+  if (c === "invalid_argument") { readOnly = true; return "Nemáte oprávnenie meniť údaje v tejto aplikácii."; }
+  if (c === "quota_exceeded") return "Úložisko je plné. Zmažte staré záznamy.";
+  if (c === "resource_exhausted") return "Príliš veľa zmien naraz. Skúste to o chvíľu znova.";
+  return "Zmenu sa nepodarilo uložiť. Skúste to znova.";
+}
+async function save(coll, id, data) {
+  if (db) await db.collection(coll).doc(id).set(data);
+  else { const i = S[coll].findIndex((x) => x.id === id); const row = { id, ...data }; if (i >= 0) S[coll][i] = row; else S[coll].push(row); render(); }
+}
+async function patch(coll, id, data) {
+  if (db) await db.collection(coll).doc(id).update(data);
+  else { const r = S[coll].find((x) => x.id === id); if (r) Object.assign(r, data); render(); }
+}
+async function remove(coll, id) {
+  if (db) await db.collection(coll).doc(id).delete();
+  else { S[coll] = S[coll].filter((x) => x.id !== id); render(); }
+}
+async function guarded(fn, okMsg) {
+  try { await fn(); if (okMsg) toast(okMsg); return true; }
+  catch (e) { console.error(e); toast(dbErr(e), true); return false; }
+}
+
+// ------------------------------------------------------------- analýza
+function analyzuj(od, dok) {
+  const v = { od, do: dok, trzby: 0, kanaly: {}, suroviny: 0, kat: {}, fixne: 0, varPrev: 0 };
+  for (const t of S.trzby) if (t.datum >= od && t.datum <= dok) { v.kanaly[t.kanal] = (v.kanaly[t.kanal] || 0) + t.suma; v.trzby += t.suma; }
+  for (const p of S.prijemky) if (p.datum >= od && p.datum <= dok) for (const it of p.polozky || []) v.suroviny += it.mnozstvo * it.cena;
+  const put = (k, typ, s) => { v.kat[k] = (v.kat[k] || 0) + s; if (typ === "fixny") v.fixne += s; else v.varPrev += s; };
+  for (const n of S.naklady) if (n.datum >= od && n.datum <= dok) put(n.kategoria, n.typ, n.suma);
+  for (const [y, m] of months(od, dok)) {
+    const zm = iso(y, m, 1), km = eom(y, m);
+    for (const n of S.pravidelne) {
+      const zac = mx(mx(zm, od), n.platny_od);
+      let kon = mn(km, dok);
+      if (n.platny_do) kon = mn(kon, n.platny_do);
+      if (kon < zac) continue;
+      const pomer = zac === zm && kon === km ? 1 : dni(zac, kon) / dim(y, m);
+      put(n.kategoria, n.typ, n.mesacna_suma * pomer);
+    }
+  }
+  v.prev = v.fixne + v.varPrev;
+  v.spolu = v.suroviny + v.prev;
+  v.zisk = v.trzby - v.spolu;
+  v.variab = v.suroviny + v.varPrev;
+  v.podiel = (x) => (v.trzby ? x / v.trzby : null);
+  const pnu = v.podiel(v.trzby - v.variab);
+  v.bz = pnu != null && pnu > 0 ? v.fixne / pnu : null;
+  v.rezerva = v.bz != null && v.trzby ? (v.trzby - v.bz) / v.trzby : null;
+  return v;
+}
+function upozornenia(v) {
+  const r = [];
+  if (!v.trzby) { r.push(["warn", "Bez tržieb", "V zvolenom období nie sú zapísané žiadne tržby, zisk sa nedá posúdiť."]); return r; }
+  if (v.zisk < 0) r.push(["bad", "Strata", `Prevádzka je v strate ${eur(-v.zisk)}.`]);
+  const ps = v.podiel(v.suroviny), pm = v.podiel(v.kat.mzdy || 0), pn = v.podiel(v.kat.najom || 0);
+  if (ps > LIMIT.suroviny) r.push(["warn", "Suroviny", `tvoria ${pct(ps)} tržieb (odporúčané najviac ${pct(LIMIT.suroviny)}). Skontrolujte ceny dodávateľov, odpad alebo predajné ceny.`]);
+  if (pm > LIMIT.mzdy) r.push(["warn", "Mzdy", `tvoria ${pct(pm)} tržieb (odporúčané najviac ${pct(LIMIT.mzdy)}).`]);
+  if (pn > LIMIT.najom) r.push(["warn", "Nájom", `tvorí ${pct(pn)} tržieb (odporúčané najviac ${pct(LIMIT.najom)}).`]);
+  if (v.bz == null) r.push(["bad", "Pozor", "Variabilné náklady sú vyššie ako tržby – každý predaj prehlbuje stratu."]);
+  return r;
+}
+const surMap = () => Object.fromEntries(S.suroviny.map((s) => [s.id, s]));
+const dodMap = () => Object.fromEntries(S.dodavatelia.map((d) => [d.id, d]));
+const sumPrijemky = (p) => (p.polozky || []).reduce((a, it) => a + it.mnozstvo * it.cena, 0);
+
+function stavFaktury(f, t) {
+  const prij = S.prijemky.filter((p) => p.faktura_id === f.id);
+  const sp = prij.reduce((a, p) => a + sumPrijemky(p), 0);
+  return { sumaPrij: sp, maPrij: prij.length > 0, nesulad: prij.length > 0 && Math.abs(sp - f.suma_bez_dph) > 0.01, poSpl: !f.datum_uhrady && f.datum_splatnosti < t };
+}
+function leasingy(t) {
+  const r = [];
+  for (const n of S.pravidelne) {
+    if (n.kategoria !== "leasing" || !n.platny_do) continue;
+    let i = 0, zostava = 0, d;
+    while ((d = addMonths(n.platny_od, i)) <= n.platny_do && i < 600) { if (d > t) zostava++; i++; }
+    if (zostava) r.push({ nazov: n.nazov, splatka: n.mesacna_suma, koniec: n.platny_do, zostava, suma: zostava * n.mesacna_suma });
+  }
+  return r;
+}
+function sklad() {
+  const r = {};
+  for (const s of S.suroviny) r[s.id] = { ...s, prijate: 0, hodnota: 0, spotreba: 0 };
+  for (const p of S.prijemky) for (const it of p.polozky || []) { const x = r[it.surovina_id]; if (x) { x.prijate += it.mnozstvo; x.hodnota += it.mnozstvo * it.cena; } }
+  for (const s of S.spotreba) { const x = r[s.surovina_id]; if (x) x.spotreba += s.mnozstvo; }
+  return Object.values(r).map((x) => ({ ...x, zasoba: x.prijate - x.spotreba, cena: x.prijate ? x.hodnota / x.prijate : null })).sort((a, b) => a.nazov.localeCompare(b.nazov, "sk"));
+}
+
+// ------------------------------------------------------------- záložky
+let tab = "prehlad";
+function showTab(t) {
+  if (!document.getElementById("tab-" + t)) t = "prehlad";
+  tab = t;
+  for (const b of document.querySelectorAll("#tabs button")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
+  for (const s of document.querySelectorAll("section.tab")) s.hidden = s.id !== "tab-" + t;
+  render();
+}
+$("tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) { showTab(b.dataset.tab); try { history.replaceState(null, "", "#" + b.dataset.tab); } catch {} } });
+
+// Dvojklikové mazanie (prehliadač v tomto okne nezobrazuje potvrdzovacie dialógy).
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-del]");
+  if (!b) return;
+  if (!b.classList.contains("armed")) {
+    b.classList.add("armed"); b.dataset.orig = b.textContent; b.textContent = "Naozaj zmazať?";
+    setTimeout(() => { if (b.isConnected) { b.classList.remove("armed"); b.textContent = b.dataset.orig; } }, 3500);
+    return;
+  }
+  const [coll, id] = b.dataset.del.split(":");
+  if (coll === "faktury") for (const p of S.prijemky.filter((p) => p.faktura_id === id)) await guarded(() => patch("prijemky", p.id, { faktura_id: null }));
+  await guarded(() => remove(coll, id), "Zmazané.");
+});
+
+// ------------------------------------------------------------- pomocné UI
+function fillSelect(sel, opts, placeholder) {
+  const cur = sel.value;
+  sel.innerHTML = (placeholder ? `<option value="">${esc(placeholder)}</option>` : "") + opts.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("");
+  if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+}
+const delBtn = (coll, id) => `<button class="link" data-del="${coll}:${esc(id)}" title="Zmazať">Zmazať</button>`;
+const emptyRow = (cols, text) => `<tr><td colspan="${cols}"><div class="empty">${text}</div></td></tr>`;
+const dodOpts = () => S.dodavatelia.slice().sort((a, b) => a.nazov.localeCompare(b.nazov, "sk")).map((d) => [d.id, d.nazov]);
+const surOpts = () => S.suroviny.slice().sort((a, b) => a.nazov.localeCompare(b.nazov, "sk")).map((s) => [s.id, `${s.nazov} (${s.jednotka})`]);
+
+// ------------------------------------------------------------- PREHĽAD
+let perTouched = false;
+function setPer(kind) {
+  const t = today(); const [y, m] = ymd(t);
+  let lastM = addMonths(iso(y, m, 1), -1);
+  const posl = S.trzby.reduce((a, x) => (x.datum > a ? x.datum : a), "");
+  if (posl && posl < lastM) lastM = posl.slice(0, 8) + "01";
+  if (kind === "rok") { $("perOd").value = `${y}-01`; $("perDo").value = `${y}-${pad(m)}`; }
+  else { const n = kind === "1" ? 1 : 6; $("perDo").value = lastM.slice(0, 7); $("perOd").value = addMonths(lastM, -(n - 1)).slice(0, 7); }
+}
+document.querySelectorAll("[data-per]").forEach((b) => b.addEventListener("click", () => { perTouched = true; setPer(b.dataset.per); render(); }));
+["perOd", "perDo"].forEach((id) => $(id).addEventListener("change", () => { perTouched = true; render(); }));
+
+function vzsRows(v) {
+  const r = [["TRŽBY", v.trzby, true]];
+  for (const [k, s] of Object.entries(v.kanaly).sort((a, b) => b[1] - a[1])) r.push([`z toho ${k}`, s, false, "sub"]);
+  r.push(["Náklady na suroviny", -v.suroviny]);
+  r.push(["HRUBÁ MARŽA", v.trzby - v.suroviny, true]);
+  for (const k of Object.keys(KAT)) if (v.kat[k]) r.push([KAT[k][0], -v.kat[k]]);
+  for (const [k, s] of Object.entries(v.kat)) if (!KAT[k] && s) r.push([k, -s]);
+  r.push(["Prevádzkové náklady spolu", -v.prev]);
+  r.push([v.zisk >= 0 ? "ZISK" : "STRATA", v.zisk, true]);
+  return r;
+}
+function renderPrehlad() {
+  if (!$("perOd").value || !$("perDo").value) setPer("6");
+  let od = $("perOd").value + "-01", dm = $("perDo").value;
+  if (dm < $("perOd").value) dm = $("perOd").value;
+  const [dy, dmm] = ymd(dm + "-01"); const dok = eom(dy, dmm);
+  const v = analyzuj(od, dok);
+  const t = today();
+
+  $("kpis").innerHTML = [
+    ["Tržby", eur(v.trzby), `${months(od, dok).length} mes.`],
+    ["Náklady spolu", eur(v.spolu), `suroviny ${pct(v.podiel(v.suroviny))} tržieb`],
+    [v.zisk >= 0 ? "Zisk" : "Strata", eur(v.zisk), "pred daňou a odpismi", "result " + (v.zisk >= 0 ? "plus" : "minus")],
+    ["Marža zisku", pct(v.podiel(v.zisk)), "zisk ÷ tržby"],
+    ["Bod zvratu", eur(v.bz), v.rezerva != null ? `rezerva ${pct(v.rezerva)}` : "–"],
+  ].map(([l, val, h, cls]) => `<div class="kpi ${cls || ""}"><div class="lbl">${l}</div><div class="val ${cls ? (v.zisk >= 0 ? "plus" : "minus") : ""}">${val}</div><div class="hint">${h}</div></div>`).join("");
+
+  $("alerts").innerHTML = upozornenia(v).map(([c, b, txt]) => `<div class="alert ${c}"><b>${c === "bad" ? "⚠" : "!"} ${esc(b)}</b><span>${esc(txt)}</span></div>`).join("");
+
+  $("vzs").innerHTML = `<tr><th>Položka</th><th class="n">Suma</th><th class="n">% z tržieb</th></tr>` +
+    vzsRows(v).map(([p, s, sum, cls]) => `<tr class="${sum ? "sum" : ""} ${cls || ""}"><td>${esc(p)}</td><td class="n ${sum ? (s >= 0 ? "plus" : "minus") : ""}">${eur(s)}</td><td class="n">${pct(v.podiel(Math.abs(s)))}</td></tr>`).join("");
+
+  $("ukaz").innerHTML = [
+    ["Fixné náklady", eur(v.fixne)],
+    ["Variabilné náklady (vrátane surovín)", eur(v.variab)],
+    ["Podiel surovín na tržbách (food cost)", pct(v.podiel(v.suroviny))],
+    ["Podiel miezd na tržbách", pct(v.podiel(v.kat.mzdy || 0))],
+    ["Hrubá marža", pct(v.podiel(v.trzby - v.suroviny))],
+    ["Marža zisku", pct(v.podiel(v.zisk))],
+    ["Bod zvratu (potrebné tržby)", eur(v.bz)],
+    ["Bezpečnostná rezerva tržieb", pct(v.rezerva)],
+  ].map(([k, h]) => `<tr><td>${k}</td><td class="n">${h}</td></tr>`).join("");
+
+  // mesačný vývoj
+  const mes = months(od, dok).map(([y, m]) => ({ y, m, v: analyzuj(mx(iso(y, m, 1), od), mn(eom(y, m), dok)) }));
+  renderChart(mes);
+  $("mesTab").innerHTML = `<tr><th>Mesiac</th><th class="n">Tržby</th><th class="n">Suroviny</th><th class="n">Prevádzkové náklady</th><th class="n">Zisk / strata</th><th class="n">Marža</th></tr>` +
+    mes.map(({ y, m, v }) => `<tr><td>${MES[m - 1]} ${y}</td><td class="n">${eur(v.trzby)}</td><td class="n">${eur(v.suroviny)}</td><td class="n">${eur(v.prev)}</td><td class="n ${v.zisk >= 0 ? "plus" : "minus"}">${eur(v.zisk)}</td><td class="n">${pct(v.podiel(v.zisk))}</td></tr>`).join("");
+
+  // štruktúra nákladov
+  const st = [["Suroviny", v.suroviny], ...Object.entries(v.kat).map(([k, s]) => [KAT[k] ? KAT[k][0] : k, s])].filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  const maxS = st.length ? st[0][1] : 1;
+  $("struktura").innerHTML = st.length ? st.map(([n, s]) => `<div class="hbar"><span>${esc(n)}</span><div class="track"><div class="fill" style="width:${((s / maxS) * 100).toFixed(1)}%"></div></div><span class="num">${eur(s)}</span><span class="num muted">${pct(s / v.spolu)}</span></div>`).join("")
+    : `<div class="empty">V období nie sú žiadne náklady.</div>`;
+
+  // ceny surovín
+  const sm = surMap(); const ceny = {};
+  for (const p of S.prijemky) if (p.datum >= od && p.datum <= dok) for (const it of p.polozky || []) {
+    const c = (ceny[it.surovina_id] ||= { mes: {}, mn: 0, suma: 0 });
+    const k = p.datum.slice(0, 7); const x = (c.mes[k] ||= [0, 0]);
+    x[0] += it.mnozstvo; x[1] += it.mnozstvo * it.cena; c.mn += it.mnozstvo; c.suma += it.mnozstvo * it.cena;
+  }
+  const cr = Object.entries(ceny).map(([id, c]) => { const ks = Object.keys(c.mes).sort(); const a = c.mes[ks[0]], b = c.mes[ks[ks.length - 1]]; const p1 = a[1] / a[0], p2 = b[1] / b[0]; return { s: sm[id] || { nazov: "?", jednotka: "" }, ...c, p1, p2, z: p1 ? (p2 - p1) / p1 : null }; }).sort((a, b) => b.suma - a.suma);
+  $("ceny").innerHTML = cr.length ? `<tr><th>Surovina</th><th class="n">Nakúpené</th><th class="n">Cena teraz</th><th class="n">Zmena</th></tr>` +
+    cr.map((c) => { const z = Math.round((c.z || 0) * 1000) / 1000; return `<tr><td>${esc(c.s.nazov)}<div class="small muted">${num(c.mn)} ${esc(c.s.jednotka)}</div></td><td class="n">${eur(c.suma)}</td><td class="n">${eur(c.p2)}/${esc(c.s.jednotka)}</td><td class="n">${z > 0 ? `<span class="pill bad">▲ ${pct(z)}</span>` : z < 0 ? `<span class="pill good">▼ ${pct(-z)}</span>` : `<span class="pill neutral">bez zmeny</span>`}</td></tr>`; }).join("")
+    : emptyRow(4, "V období neboli prijaté žiadne suroviny.");
+
+  // záväzky
+  const dm2 = dodMap();
+  const neuhr = S.faktury.filter((f) => !f.datum_uhrady).sort((a, b) => a.datum_splatnosti.localeCompare(b.datum_splatnosti));
+  const zav = neuhr.reduce((a, f) => a + f.suma_bez_dph + (f.dph || 0), 0);
+  const po = neuhr.filter((f) => f.datum_splatnosti < t);
+  const nes = S.faktury.filter((f) => stavFaktury(f, t).nesulad);
+  $("zavazky").innerHTML = `<p style="margin:0">Neuhradené faktúry: <b>${neuhr.length}</b>, spolu <b>${eur(zav)}</b> s DPH${po.length ? `, z toho <span class="pill bad">${po.length} po splatnosti</span>` : ""}.</p>` +
+    (neuhr.length ? `<div class="tw"><table><tr><th>Faktúra</th><th>Splatná</th><th class="n">S DPH</th></tr>${neuhr.map((f) => `<tr><td>${esc(f.cislo)}<div class="small muted">${esc(dm2[f.dodavatel_id]?.nazov || "")}</div></td><td>${dtSk(f.datum_splatnosti)} ${f.datum_splatnosti < t ? '<span class="pill bad">po splatnosti</span>' : ""}</td><td class="n">${eur(f.suma_bez_dph + (f.dph || 0))}</td></tr>`).join("")}</table></div>` : "") +
+    nes.map((f) => { const s = stavFaktury(f, t); return `<div class="alert warn"><b>! Nesúlad</b><span>Faktúra ${esc(f.cislo)} je na ${eur(f.suma_bez_dph)}, ale príjemky k nej sú na ${eur(s.sumaPrij)} (rozdiel ${eur(f.suma_bez_dph - s.sumaPrij)}).</span></div>`; }).join("");
+
+  const ls = leasingy(t);
+  $("leasingy").innerHTML = ls.length ? `<div class="tw"><table><tr><th>Stroj</th><th class="n">Splátka</th><th class="n">Zostáva</th><th class="n">Spolu</th></tr>${ls.map((l) => `<tr><td>${esc(l.nazov.replace(/^Leasing: /, ""))}<div class="small muted">do ${dtSk(l.koniec)}</div></td><td class="n">${eur(l.splatka)}</td><td class="n">${l.zostava}×</td><td class="n">${eur(l.suma)}</td></tr>`).join("")}<tr class="sum"><td>Spolu</td><td></td><td></td><td class="n">${eur(ls.reduce((a, l) => a + l.suma, 0))}</td></tr></table></div>`
+    : `<div class="empty">Žiadne bežiace leasingy. Pridáte ich v záložke Náklady prevádzky.</div>`;
+}
+
+function niceMax(v) { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const f = v / p; return ([1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((k) => f <= k)) * p; }
+function renderChart(mes) {
+  const W = 760, H = 240, L = 56, R = 8, T = 10, B = 26;
+  const ymax = niceMax(Math.max(1, ...mes.map((x) => Math.max(x.v.trzby, x.v.spolu))));
+  const pw = W - L - R, ph = H - T - B, n = mes.length || 1, band = pw / n;
+  const bw = Math.min(28, (band - 10) / 2);
+  const y = (v) => T + ph - (v / ymax) * ph;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * ymax);
+  const kf = (v) => (v >= 1000 ? (v / 1000).toLocaleString("sk-SK", { maximumFractionDigits: 1 }) + " tis." : v.toLocaleString("sk-SK"));
+  const bar = (x, v, col) => { const h = Math.max(0, (v / ymax) * ph); if (h <= 0) return ""; const r = Math.min(4, h, bw / 2); const yb = T + ph; return `<path fill="${col}" d="M${x},${yb} V${yb - h + r} Q${x},${yb - h} ${x + r},${yb - h} H${x + bw - r} Q${x + bw},${yb - h} ${x + bw},${yb - h + r} V${yb} Z"/>`; };
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tržby a náklady po mesiacoch"><g class="grid">`;
+  for (const t of ticks) s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${kf(t)}</text>`;
+  s += `</g>`;
+  mes.forEach((mm, i) => {
+    const cx = L + band * i + band / 2;
+    s += `<rect class="hit" data-i="${i}" x="${L + band * i}" y="${T}" width="${band}" height="${ph}" rx="4"/>`;
+    s += bar(cx - bw - 1, mm.v.trzby, "var(--series-1)") + bar(cx + 1, mm.v.spolu, "var(--series-2)");
+    s += `<text x="${cx}" y="${H - 8}" text-anchor="middle">${MES[mm.m - 1]}${n > 12 || mm.m === 1 || i === 0 ? " " + String(mm.y).slice(2) : ""}</text>`;
+  });
+  s += `</svg><div class="tip" hidden></div>`;
+  const el = $("chart"); el.innerHTML = s;
+  const tip = el.querySelector(".tip"), svg = el.querySelector("svg");
+  svg.querySelectorAll("rect.hit").forEach((r) => {
+    r.style.pointerEvents = "all";
+    r.addEventListener("mouseenter", () => {
+      const mm = mes[+r.dataset.i];
+      tip.innerHTML = `<b>${MES[mm.m - 1]} ${mm.y}</b><div><span>Tržby</span><span>${eur(mm.v.trzby)}</span></div><div><span>Náklady</span><span>${eur(mm.v.spolu)}</span></div><div><span>${mm.v.zisk >= 0 ? "Zisk" : "Strata"}</span><span class="${mm.v.zisk >= 0 ? "plus" : "minus"}">${eur(mm.v.zisk)}</span></div>`;
+      tip.hidden = false;
+      const sc = svg.getBoundingClientRect().width / W;
+      const left = (L + band * (+r.dataset.i + 1)) * sc + 8;
+      tip.style.left = (left + 180 > el.clientWidth ? Math.max(0, (L + band * +r.dataset.i) * sc - 188) : left) + "px";
+      tip.style.top = "8px";
+    });
+    r.addEventListener("mouseleave", () => (tip.hidden = true));
+  });
+  // Stĺpce kreslíme pod priehľadnou plochou pre hover, aby tooltip reagoval na celý mesiac.
+  svg.querySelectorAll("path").forEach((p) => (p.style.pointerEvents = "none"));
+}
+
+// ------------------------------------------------------------- PRÍJEM
+function itemRow() {
+  const d = document.createElement("div");
+  d.className = "item";
+  d.innerHTML = `<label class="full">Surovina<select class="iSur" required></select></label>
+    <label>Množstvo<input class="iMn" inputmode="decimal" required></label>
+    <label>Cena/jedn. bez DPH (€)<input class="iCena" inputmode="decimal" required></label>
+    <label>DPH %<select class="iDph"><option>20</option><option>19</option><option>10</option><option>5</option><option>0</option></select></label>
+    <button type="button" class="link" title="Odstrániť položku">✕</button>
+    <label class="full iNovaL" hidden style="grid-column:1/-1">Nová surovina – názov a jednotka<span style="display:flex;gap:8px"><input class="iNova" placeholder="napr. Tmavý cukor"><select class="iNovaJ" style="max-width:90px"><option>kg</option><option>l</option><option>ks</option><option>bal</option></select></span></label>`;
+  const sel = d.querySelector(".iSur");
+  fillSelect(sel, [...surOpts(), ["__new", "+ nová surovina…"]], "Vyberte surovinu");
+  sel.addEventListener("change", () => { d.querySelector(".iNovaL").hidden = sel.value !== "__new"; });
+  d.querySelector("button").addEventListener("click", () => { d.remove(); prTotal(); });
+  d.addEventListener("input", prTotal);
+  // Cena sa predvyplní poslednou nákupnou cenou suroviny.
+  sel.addEventListener("change", () => {
+    const last = S.prijemky.slice().sort((a, b) => b.datum.localeCompare(a.datum)).flatMap((p) => p.polozky || []).find((it) => it.surovina_id === sel.value);
+    const c = d.querySelector(".iCena"); if (last && !c.value) { c.value = String(last.cena).replace(".", ","); prTotal(); }
+  });
+  $("prItems").appendChild(d);
+}
+function prTotal() {
+  let s = 0;
+  for (const d of $("prItems").children) { const a = parseNum(d.querySelector(".iMn").value), b = parseNum(d.querySelector(".iCena").value); if (isFinite(a) && isFinite(b)) s += a * b; }
+  $("prTotal").textContent = eur(s);
+}
+$("prAddItem").addEventListener("click", itemRow);
+$("prDod").addEventListener("change", () => { $("prDodNovyL").hidden = $("prDod").value !== "__new"; renderPrijemFakt(); });
+function renderPrijemFakt() {
+  const d = $("prDod").value;
+  fillSelect($("prFakt"), S.faktury.filter((f) => f.dodavatel_id === d).sort((a, b) => b.datum_vystavenia.localeCompare(a.datum_vystavenia)).map((f) => [f.id, `${f.cislo} (${dtSk(f.datum_vystavenia)})`]), "bez faktúry / príde neskôr");
+}
+$("fPrijem").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (readOnly) return toast("Nemáte oprávnenie meniť údaje.", true);
+  const rows = [...$("prItems").children];
+  if (!rows.length) return toast("Pridajte aspoň jednu položku.", true);
+  const pol = [];
+  for (const d of rows) {
+    const mnz = parseNum(d.querySelector(".iMn").value), cena = parseNum(d.querySelector(".iCena").value);
+    if (!(mnz > 0)) return toast("Množstvo musí byť väčšie ako 0.", true);
+    if (!(cena >= 0)) return toast("Zadajte cenu za jednotku, napr. 0,45.", true);
+    pol.push({ d, mnz, cena, dph: +d.querySelector(".iDph").value, sur: d.querySelector(".iSur").value });
+  }
+  let dod = $("prDod").value;
+  const ok = await guarded(async () => {
+    if (dod === "__new") {
+      const n = $("prDodNovy").value.trim(); if (!n) throw { code: "x", msg: "Zadajte názov dodávateľa." };
+      dod = newId("d"); await save("dodavatelia", dod, { nazov: n, ico: "", kontakt: "" });
+    }
+    for (const p of pol) if (p.sur === "__new") {
+      const n = p.d.querySelector(".iNova").value.trim(); if (!n) throw { code: "x", msg: "Zadajte názov novej suroviny." };
+      p.sur = newId("s"); await save("suroviny", p.sur, { nazov: n, jednotka: p.d.querySelector(".iNovaJ").value, min_zasoba: 0 });
+    }
+    if (pol.some((p) => !p.sur)) throw { code: "x", msg: "Pri každej položke vyberte surovinu." };
+    await save("prijemky", newId("p"), { datum: $("prDatum").value, dodavatel_id: dod, faktura_id: $("prFakt").value || null, poznamka: $("prPozn").value.trim(),
+      polozky: pol.map((p) => ({ surovina_id: p.sur, mnozstvo: p.mnz, cena: p.cena, dph: p.dph })) });
+  }, "Príjemka uložená.");
+  if (ok) { $("prItems").innerHTML = ""; itemRow(); $("prPozn").value = ""; prTotal(); }
+});
+function renderPrijem() {
+  fillSelect($("prDod"), [...dodOpts(), ["__new", "+ nový dodávateľ…"]], "Vyberte dodávateľa");
+  renderPrijemFakt();
+  for (const sel of document.querySelectorAll("#prItems .iSur")) fillSelect(sel, [...surOpts(), ["__new", "+ nová surovina…"]], "Vyberte surovinu");
+  const dm = dodMap(), sm = surMap(), fm = Object.fromEntries(S.faktury.map((f) => [f.id, f]));
+  const l = S.prijemky.slice().sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 60);
+  $("prList").innerHTML = l.length ? `<tr><th>Dátum</th><th>Dodávateľ</th><th>Položky</th><th>Faktúra</th><th class="n">Bez DPH</th><th></th></tr>` +
+    l.map((p) => `<tr><td>${dtSk(p.datum)}</td><td>${esc(dm[p.dodavatel_id]?.nazov || "?")}</td><td class="small">${(p.polozky || []).map((it) => `${esc(sm[it.surovina_id]?.nazov || "?")} ${num(it.mnozstvo)} ${esc(sm[it.surovina_id]?.jednotka || "")}`).join(", ")}${p.poznamka ? `<div class="muted">${esc(p.poznamka)}</div>` : ""}</td><td>${p.faktura_id && fm[p.faktura_id] ? esc(fm[p.faktura_id].cislo) : '<span class="pill neutral">bez faktúry</span>'}</td><td class="n">${eur(sumPrijemky(p))}</td><td class="act">${delBtn("prijemky", p.id)}</td></tr>`).join("") +
+    (S.prijemky.length > 60 ? `<tr><td colspan="6" class="small muted">Zobrazených je posledných 60 z ${S.prijemky.length} príjemok.</td></tr>` : "")
+    : emptyRow(6, "Zatiaľ žiadne príjemky. Prvú zapíšete formulárom vyššie.");
+}
+
+// ------------------------------------------------------------- FAKTÚRY
+function renderFaktPrij() {
+  const d = $("faDod").value; const checked = new Set([...document.querySelectorAll("#faPrij input:checked")].map((i) => i.value));
+  const l = S.prijemky.filter((p) => p.dodavatel_id === d && !p.faktura_id).sort((a, b) => a.datum.localeCompare(b.datum));
+  $("faPrij").innerHTML = !d ? `<span class="small muted">Najprv vyberte dodávateľa.</span>` : l.length ? l.map((p) => `<label><input type="checkbox" value="${esc(p.id)}" ${checked.has(p.id) ? "checked" : ""}>${dtSk(p.datum)} – ${eur(sumPrijemky(p))}</label>`).join("") : `<span class="small muted">Tento dodávateľ nemá príjemky bez faktúry.</span>`;
+}
+$("faDod").addEventListener("change", renderFaktPrij);
+$("faVyst").addEventListener("change", () => { if (!$("faSpl").value) $("faSpl").value = addDays($("faVyst").value, 14); });
+$("faFill").addEventListener("click", () => {
+  const ids = new Set([...document.querySelectorAll("#faPrij input:checked")].map((i) => i.value));
+  const s = S.prijemky.filter((p) => ids.has(p.id)).reduce((a, p) => a + sumPrijemky(p), 0);
+  if (!ids.size) return toast("Najprv označte príjemky.", true);
+  $("faSuma").value = s.toFixed(2).replace(".", ","); $("faDph").value = (s * 0.2).toFixed(2).replace(".", ",");
+});
+$("fFakt").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (readOnly) return toast("Nemáte oprávnenie meniť údaje.", true);
+  const suma = parseNum($("faSuma").value); let dph = parseNum($("faDph").value);
+  if (!(suma >= 0)) return toast("Zadajte sumu faktúry bez DPH.", true);
+  if (!isFinite(dph)) dph = Math.round(suma * 20) / 100;
+  if ($("faSpl").value < $("faVyst").value) return toast("Splatnosť nemôže byť pred dátumom vystavenia.", true);
+  const cislo = $("faCislo").value.trim();
+  if (S.faktury.some((f) => f.dodavatel_id === $("faDod").value && f.cislo === cislo)) return toast(`Faktúra ${cislo} od tohto dodávateľa už existuje.`, true);
+  const id = newId("f"); const prij = [...document.querySelectorAll("#faPrij input:checked")].map((i) => i.value);
+  const ok = await guarded(async () => {
+    await save("faktury", id, { cislo, dodavatel_id: $("faDod").value, datum_vystavenia: $("faVyst").value, datum_splatnosti: $("faSpl").value, suma_bez_dph: suma, dph, datum_uhrady: null });
+    for (const p of prij) await patch("prijemky", p, { faktura_id: id });
+  }, "Faktúra uložená.");
+  if (ok) { for (const i of ["faCislo", "faSuma", "faDph", "faSpl"]) $(i).value = ""; }
+});
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-uhrad]"); if (!b) return;
+  guarded(() => patch("faktury", b.dataset.uhrad, { datum_uhrady: today() }), "Faktúra označená ako uhradená.");
+});
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-neuhrad]"); if (!b) return;
+  guarded(() => patch("faktury", b.dataset.neuhrad, { datum_uhrady: null }), "Úhrada zrušená.");
+});
+function renderFaktury() {
+  fillSelect($("faDod"), dodOpts(), "Vyberte dodávateľa");
+  renderFaktPrij();
+  const t = today(), dm = dodMap();
+  const neuhr = S.faktury.filter((f) => !f.datum_uhrady);
+  const po = neuhr.filter((f) => f.datum_splatnosti < t);
+  const nes = S.faktury.filter((f) => stavFaktury(f, t).nesulad);
+  $("fKpis").innerHTML = [
+    ["Neuhradené (s DPH)", eur(neuhr.reduce((a, f) => a + f.suma_bez_dph + (f.dph || 0), 0)), `${neuhr.length} faktúr`],
+    ["Po splatnosti", eur(po.reduce((a, f) => a + f.suma_bez_dph + (f.dph || 0), 0)), `${po.length} faktúr`, po.length ? "minus" : ""],
+    ["Nesúlad s príjemkami", String(nes.length), nes.length ? `rozdiel ${eur(nes.reduce((a, f) => a + f.suma_bez_dph - stavFaktury(f, t).sumaPrij, 0))}` : "všetko sedí"],
+  ].map(([l, v, h, c]) => `<div class="kpi"><div class="lbl">${l}</div><div class="val ${c || ""}">${v}</div><div class="hint">${h}</div></div>`).join("");
+  // Neuhradené navrch, potom od najnovšej.
+  const l = S.faktury.slice().sort((a, b) => (!b.datum_uhrady) - (!a.datum_uhrady) || b.datum_vystavenia.localeCompare(a.datum_vystavenia));
+  $("faList").innerHTML = l.length ? `<tr><th>Číslo</th><th>Dodávateľ</th><th>Vystavená</th><th>Splatná</th><th class="n">Bez DPH</th><th class="n">S DPH</th><th>Stav</th><th></th></tr>` +
+    l.map((f) => { const s = stavFaktury(f, t);
+      const stav = (f.datum_uhrady ? `<span class="pill good">uhradená ${dtSk(f.datum_uhrady)}</span>` : s.poSpl ? `<span class="pill bad">po splatnosti</span>` : `<span class="pill neutral">čaká na úhradu</span>`) +
+        (s.nesulad ? ` <span class="pill warn" title="Príjemky: ${eur(s.sumaPrij)}">nesúlad ${eur(f.suma_bez_dph - s.sumaPrij)}</span>` : "") + (!s.maPrij ? ` <span class="pill neutral">bez príjemok</span>` : "");
+      return `<tr><td>${esc(f.cislo)}</td><td>${esc(dm[f.dodavatel_id]?.nazov || "?")}</td><td>${dtSk(f.datum_vystavenia)}</td><td>${dtSk(f.datum_splatnosti)}</td><td class="n">${eur(f.suma_bez_dph)}</td><td class="n">${eur(f.suma_bez_dph + (f.dph || 0))}</td><td>${stav}</td><td class="act">${f.datum_uhrady ? `<button class="link" data-neuhrad="${esc(f.id)}">Zrušiť úhradu</button>` : `<button class="link ok" data-uhrad="${esc(f.id)}">Uhradená dnes</button>`}${delBtn("faktury", f.id)}</td></tr>`; }).join("")
+    : emptyRow(8, "Zatiaľ žiadne faktúry.");
+}
+
+// ------------------------------------------------------------- NÁKLADY
+function katSelects(katSel, typSel) {
+  fillSelect(katSel, Object.entries(KAT).map(([k, v]) => [k, v[0]]));
+  fillSelect(typSel, Object.entries(TYP));
+  katSel.addEventListener("change", () => { typSel.value = KAT[katSel.value][1]; });
+  typSel.value = KAT[katSel.value][1];
+}
+katSelects($("pvKat"), $("pvTyp"));
+katSelects($("nkKat"), $("nkTyp"));
+$("fPrav").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const s = parseNum($("pvSuma").value); if (!(s >= 0)) return toast("Zadajte mesačnú sumu.", true);
+  if ($("pvDo").value && $("pvDo").value < $("pvOd").value) return toast("Koniec platnosti nemôže byť pred začiatkom.", true);
+  if (await guarded(() => save("pravidelne", newId("r"), { nazov: $("pvNazov").value.trim(), kategoria: $("pvKat").value, typ: $("pvTyp").value, mesacna_suma: s, platny_od: $("pvOd").value, platny_do: $("pvDo").value || null }), "Pravidelný náklad uložený."))
+    { $("pvNazov").value = ""; $("pvSuma").value = ""; $("pvDo").value = ""; }
+});
+$("fLeas").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const s = parseNum($("lsSplatka").value), n = parseInt($("lsPocet").value, 10);
+  if (!(s >= 0)) return toast("Zadajte mesačnú splátku.", true);
+  if (!(n > 0)) return toast("Počet splátok musí byť aspoň 1.", true);
+  const od = $("lsOd").value;
+  if (await guarded(() => save("pravidelne", newId("r"), { nazov: "Leasing: " + $("lsStroj").value.trim(), kategoria: "leasing", typ: "fixny", mesacna_suma: s, platny_od: od, platny_do: addDays(addMonths(od, n), -1) }), "Leasing uložený."))
+    { $("lsStroj").value = ""; $("lsSplatka").value = ""; }
+});
+$("fNakl").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const s = parseNum($("nkSuma").value); if (!(s >= 0)) return toast("Zadajte sumu nákladu.", true);
+  if (await guarded(() => save("naklady", newId("n"), { datum: $("nkDatum").value, nazov: $("nkNazov").value.trim(), kategoria: $("nkKat").value, typ: $("nkTyp").value, suma: s }), "Náklad uložený."))
+    { $("nkNazov").value = ""; $("nkSuma").value = ""; }
+});
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-ukonci]"); if (!b) return;
+  const [y, m] = ymd(today());
+  guarded(() => patch("pravidelne", b.dataset.ukonci, { platny_do: eom(y, m) }), `Náklad platí naposledy v ${MES[m - 1]} ${y}.`);
+});
+function renderNaklady() {
+  const t = today();
+  const l = S.pravidelne.slice().sort((a, b) => Object.keys(KAT).indexOf(a.kategoria) - Object.keys(KAT).indexOf(b.kategoria) || a.nazov.localeCompare(b.nazov, "sk"));
+  const aktivne = l.filter((n) => n.platny_od <= t && (!n.platny_do || n.platny_do >= t));
+  $("pvList").innerHTML = l.length ? `<tr><th>Názov</th><th>Kategória</th><th>Typ</th><th class="n">Mesačne</th><th>Platnosť</th><th></th></tr>` +
+    l.map((n) => { const akt = n.platny_od <= t && (!n.platny_do || n.platny_do >= t);
+      return `<tr><td>${esc(n.nazov)}</td><td>${esc(KAT[n.kategoria]?.[0] || n.kategoria)}</td><td>${TYP[n.typ]}</td><td class="n">${eur(n.mesacna_suma)}</td><td>${dtSk(n.platny_od)} – ${n.platny_do ? dtSk(n.platny_do) : "neurčito"} ${akt ? "" : n.platny_od > t ? '<span class="pill neutral">začne neskôr</span>' : '<span class="pill neutral">skončený</span>'}</td><td class="act">${akt && !n.platny_do ? `<button class="link" data-ukonci="${esc(n.id)}">Ukončiť týmto mesiacom</button>` : ""}${delBtn("pravidelne", n.id)}</td></tr>`; }).join("") +
+      `<tr class="sum"><td colspan="3">Aktuálne mesačne spolu</td><td class="n">${eur(aktivne.reduce((a, n) => a + n.mesacna_suma, 0))}</td><td colspan="2"></td></tr>`
+    : emptyRow(6, "Zatiaľ žiadne pravidelné náklady. Začnite nájmom a mzdami.");
+  const nl = S.naklady.slice().sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 40);
+  $("nkList").innerHTML = nl.length ? `<tr><th>Dátum</th><th>Popis</th><th>Kategória</th><th>Typ</th><th class="n">Suma</th><th></th></tr>` +
+    nl.map((n) => `<tr><td>${dtSk(n.datum)}</td><td>${esc(n.nazov)}</td><td>${esc(KAT[n.kategoria]?.[0] || n.kategoria)}</td><td>${TYP[n.typ]}</td><td class="n">${eur(n.suma)}</td><td class="act">${delBtn("naklady", n.id)}</td></tr>`).join("")
+    : emptyRow(6, "Zatiaľ žiadne jednorazové náklady.");
+}
+
+// ------------------------------------------------------------- TRŽBY
+fillSelect($("tzKanal"), KANALY.map((k) => [k, k]));
+$("fTrz").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const s = parseNum($("tzSuma").value); if (!(s >= 0)) return toast("Zadajte tržbu, napr. 845,20.", true);
+  if (await guarded(() => save("trzby", newId("t"), { datum: $("tzDatum").value, kanal: $("tzKanal").value, suma: s }), "Tržba uložená.")) $("tzSuma").value = "";
+});
+function renderTrzby() {
+  const pm = {};
+  for (const t of S.trzby) { const k = t.datum.slice(0, 7); const x = (pm[k] ||= { s: 0, k: {}, dni: new Set() }); x.s += t.suma; x.k[t.kanal] = (x.k[t.kanal] || 0) + t.suma; x.dni.add(t.datum); }
+  const ks = Object.keys(pm).sort().reverse().slice(0, 12);
+  $("tzMes").innerHTML = ks.length ? `<tr><th>Mesiac</th><th class="n">Tržby</th><th class="n">Dní</th><th class="n">Priemer/deň</th></tr>` +
+    ks.map((k) => { const [y, m] = ymd(k + "-01"); const x = pm[k]; return `<tr><td>${MES[m - 1]} ${y}<div class="small muted">${Object.entries(x.k).map(([a, b]) => `${esc(a)} ${eur(b)}`).join(" · ")}</div></td><td class="n">${eur(x.s)}</td><td class="n">${x.dni.size}</td><td class="n">${eur(x.s / x.dni.size)}</td></tr>`; }).join("")
+    : emptyRow(4, "Zatiaľ žiadne tržby.");
+  const l = S.trzby.slice().sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 30);
+  $("tzList").innerHTML = l.length ? `<tr><th>Dátum</th><th>Kanál</th><th class="n">Tržba bez DPH</th><th></th></tr>` +
+    l.map((t) => `<tr><td>${dtSk(t.datum)}</td><td>${esc(t.kanal)}</td><td class="n">${eur(t.suma)}</td><td class="act">${delBtn("trzby", t.id)}</td></tr>`).join("")
+    : emptyRow(4, "Zatiaľ žiadne tržby. Zapíšte dnešnú tržbu formulárom vyššie.");
+}
+
+// ------------------------------------------------------------- SKLAD
+$("fSpot").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const m = parseNum($("spMn").value); if (!(m > 0)) return toast("Množstvo musí byť väčšie ako 0.", true);
+  if (await guarded(() => save("spotreba", newId("sp"), { datum: $("spDatum").value, surovina_id: $("spSur").value, mnozstvo: m, poznamka: "" }), "Spotreba zapísaná.")) $("spMn").value = "";
+});
+$("fSur").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const n = $("suNazov").value.trim();
+  if (S.suroviny.some((s) => s.nazov.toLowerCase() === n.toLowerCase())) return toast(`Surovina ${n} už existuje.`, true);
+  const m = parseNum($("suMin").value);
+  if (await guarded(() => save("suroviny", newId("s"), { nazov: n, jednotka: $("suJed").value, min_zasoba: m > 0 ? m : 0 }), "Surovina pridaná.")) { $("suNazov").value = ""; $("suMin").value = "0"; }
+});
+$("fDod").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const n = $("ddNazov").value.trim();
+  if (S.dodavatelia.some((d) => d.nazov.toLowerCase() === n.toLowerCase())) return toast(`Dodávateľ ${n} už existuje.`, true);
+  if (await guarded(() => save("dodavatelia", newId("d"), { nazov: n, ico: $("ddIco").value.trim(), kontakt: $("ddKont").value.trim() }), "Dodávateľ pridaný.")) for (const i of ["ddNazov", "ddIco", "ddKont"]) $(i).value = "";
+});
+function renderSklad() {
+  fillSelect($("spSur"), surOpts(), "Vyberte surovinu");
+  const sk = sklad();
+  const pouzite = new Set([...S.prijemky.flatMap((p) => (p.polozky || []).map((i) => i.surovina_id)), ...S.spotreba.map((s) => s.surovina_id)]);
+  $("skList").innerHTML = sk.length ? `<tr><th>Surovina</th><th class="n">Prijaté</th><th class="n">Spotrebované</th><th class="n">Zásoba</th><th class="n">Priem. cena</th><th class="n">Hodnota zásoby</th><th></th></tr>` +
+    sk.map((s) => { const pod = s.min_zasoba && s.zasoba < s.min_zasoba;
+      return `<tr><td>${esc(s.nazov)}${s.min_zasoba ? `<div class="small muted">minimum ${num(s.min_zasoba)} ${esc(s.jednotka)}</div>` : ""}</td><td class="n">${num(s.prijate)} ${esc(s.jednotka)}</td><td class="n">${num(s.spotreba)} ${esc(s.jednotka)}</td><td class="n"><b>${num(s.zasoba)} ${esc(s.jednotka)}</b> ${pod ? '<span class="pill bad">objednať</span>' : ""}</td><td class="n">${s.cena != null ? eur(s.cena) : "–"}</td><td class="n">${s.cena != null ? eur(Math.max(0, s.zasoba) * s.cena) : "–"}</td><td class="act">${pouzite.has(s.id) ? "" : delBtn("suroviny", s.id)}</td></tr>`; }).join("")
+    : emptyRow(7, "Zatiaľ žiadne suroviny. Pridajte ich nižšie alebo priamo pri príjemke.");
+  const pd = new Set([...S.prijemky.map((p) => p.dodavatel_id), ...S.faktury.map((f) => f.dodavatel_id)]);
+  $("ddList").innerHTML = S.dodavatelia.length ? `<tr><th>Názov</th><th>IČO</th><th>Kontakt</th><th class="n">Nakúpené spolu</th><th></th></tr>` +
+    S.dodavatelia.slice().sort((a, b) => a.nazov.localeCompare(b.nazov, "sk")).map((d) => `<tr><td>${esc(d.nazov)}</td><td>${esc(d.ico || "")}</td><td>${esc(d.kontakt || "")}</td><td class="n">${eur(S.prijemky.filter((p) => p.dodavatel_id === d.id).reduce((a, p) => a + sumPrijemky(p), 0))}</td><td class="act">${pd.has(d.id) ? "" : delBtn("dodavatelia", d.id)}</td></tr>`).join("")
+    : emptyRow(5, "Zatiaľ žiadni dodávatelia.");
+}
+
+// ------------------------------------------------------------- vykreslenie
+let raf = 0;
+function render() {
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => {
+    const demo = COLLS.some((c) => S[c].some((x) => x.ukazka));
+    $("demoBanner").hidden = !demo;
+    if (tab === "prehlad") renderPrehlad();
+    else if (tab === "prijem") renderPrijem();
+    else if (tab === "faktury") renderFaktury();
+    else if (tab === "naklady") renderNaklady();
+    else if (tab === "trzby") renderTrzby();
+    else if (tab === "sklad") renderSklad();
+  });
+}
+
+// Mazanie ukážkových údajov
+$("btnClearDemo").addEventListener("click", async (e) => {
+  const b = e.currentTarget;
+  if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Naozaj zmazať celú ukážku?"; setTimeout(() => { b.classList.remove("armed"); b.textContent = "Zmazať ukážkové údaje"; }, 4000); return; }
+  b.disabled = true;
+  const todo = COLLS.flatMap((c) => S[c].filter((x) => x.ukazka).map((x) => [c, x.id]));
+  let done = 0;
+  for (const [c, id] of todo) {
+    for (let pokus = 0; pokus < 4; pokus++) {
+      try { await remove(c, id); break; }
+      catch (err) { if (err && err.code === "resource_exhausted" || err && err.code === "unavailable") await new Promise((r) => setTimeout(r, 800 * (pokus + 1))); else { toast(dbErr(err), true); b.disabled = false; return; } }
+    }
+    if (++done % 20 === 0) b.textContent = `Mažem… ${done}/${todo.length}`;
+  }
+  b.disabled = false; b.textContent = "Zmazať ukážkové údaje"; b.classList.remove("armed");
+  toast("Ukážkové údaje sú zmazané. Môžete začať zadávať vlastné.");
+  perTouched = false; setPer("rok"); render();
+});
+
+// ------------------------------------------------------------- štart
+function initDates() {
+  const t = today();
+  for (const id of ["prDatum", "faVyst", "nkDatum", "tzDatum", "spDatum"]) $(id).value = t;
+  $("faSpl").value = addDays(t, 14);
+  const [y, m] = ymd(t);
+  $("pvOd").value = iso(y, m, 1); $("lsOd").value = iso(y, m, 1);
+}
+initDates();
+itemRow();
+showTab((location.hash || "").slice(1) || "prehlad");
+
+(async () => {
+  try { db = window.claude ? await window.claude.use("db") : null; } catch { db = null; }
+  if (!db) {
+    $("localBanner").hidden = false;
+    $("syncState").textContent = "Neukladá sa";
+    render();
+    return;
+  }
+  $("syncState").textContent = "Údaje sa ukladajú automaticky";
+  for (const c of COLLS) {
+    const q = c === "trzby" ? db.collection(c).orderBy("datum", "desc").limit(1000) : db.collection(c).limit(1000);
+    q.onSnapshot((snap) => {
+      S[c] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      loaded.add(c);
+      if (c === "trzby" && !perTouched) { $("perOd").value = ""; setPer("6"); }
+      render();
+    }, (err) => { console.error(c, err); $("syncState").textContent = "Spojenie s úložiskom sa prerušilo – obnovte stránku"; });
+  }
+})();
+</script>

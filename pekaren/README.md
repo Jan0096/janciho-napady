@@ -7,7 +7,13 @@ prevádzky** s výkazom ziskov a strát, bodom zvratu a upozorneniami.
 Netreba nič inštalovať okrem Pythonu 3.10+ – aplikácia používa len štandardnú knižnicu a dáta ukladá
 do jedného súboru `pekaren.db` (SQLite).
 
-## Spustenie
+## Webová verzia (bez inštalácie)
+
+Aplikácia je dostupná aj ako webová stránka: <https://claude.ai/artifact/QPMkbt8xKiMfnLPTDbLXwH>
+(otvorte ju prihlásený na claude.ai, údaje sa ukladajú automaticky). Má rovnaké funkcie a výpočty
+ako verzia v Pythone. Zdrojový kód je v `web/pekaren.html`.
+
+## Spustenie verzie v Pythone
 
 V priečinku `pekaren` spusti:
 
@@ -77,4 +83,5 @@ Všetky sumy sa zadávajú **bez DPH** (pri faktúre sa DPH zadáva zvlášť kv
 | `pekaren/report.py` | textový a HTML report |
 | `pekaren/cli.py` | menu a príkazy |
 | `pekaren/demo.py` | ukážkové dáta |
+| `web/pekaren.html` | webová verzia (beží v prehliadači) |
 | `tests/` | testy (`python -m unittest discover -s tests`) |
