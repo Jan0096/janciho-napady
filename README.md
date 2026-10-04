@@ -70,7 +70,7 @@ Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrét
    - tipy, kde ušetriť, a porovnanie všetkých áut (najlacnejšie zvýraznené).
 2. **Ocenenie jazdy** – zadáš ponuku: km s nákladom, km naprázdno, mýto, iné náklady a cenu (spolu alebo €/km). Appka vypočíta náklady jazdy, zisk, zisk za deň a dá verdikt **Oplatí sa / Hraničné / Neoplatí sa** + minimálnu a odporúčanú cenu.
    Prepínačom **Prázdna jazda / čakanie** zapíšeš aj presun bez nákladu (pristavenie, návrat domov, presun medzi zákazkami, cesta na servis): km, mýto, dátum, auto a voliteľne firmu, kvôli ktorej si išiel naprázdno. Appka ukáže, koľko jazda stála a koľko km s nákladom treba odjazdiť na jej pokrytie.
-   Dôvod **Čakanie na nakládku / vykládku** zapíše státie v hodinách (fixné náklady auta a diéty za ten čas) a voliteľne **zdržné** vyúčtované zákazníkovi. Appka ukáže náklad za hodinu a odporúčané zdržné za deň.
+   Dôvod **Čakanie na nakládku / vykládku / na colnici** zapíše státie v hodinách (fixné náklady auta a diéty za ten čas) a voliteľne **zdržné** vyúčtované zákazníkovi. Pri colnici sa do poplatkov zadáva colná deklarácia, špeditér a parkovanie. Appka ukáže náklad za hodinu a odporúčané zdržné za deň.
 3. **Jazdy a ponuky** – súhrn km s nákladom a naprázdno (aj % a náklady na prázdne km), hodiny a náklady čakania a uložené ponuky zoradené podľa **zisku za deň**, aby si vybral tú najlepšiu. Jazdy, ktoré si naozaj odviezol, označíš ako **Zrealizovaná**.
 4. **Firmy** – grafické vyhodnotenie zákazníkov (firmu zadáš pri ocenení jazdy):
    - kartičky **Najviac sa oplatí / Najmenej sa oplatí / Najväčší zákazník**,

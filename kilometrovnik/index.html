@@ -456,6 +456,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
                   <option>Cesta na servis / STK</option>
                   <option>Čakanie na nakládku</option>
                   <option>Čakanie na vykládku</option>
+                  <option>Čakanie na colnici</option>
                   <option>Iné</option>
                 </select>
               </div>
@@ -494,7 +495,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
                 <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="e-myto" data-e="myto"><span class="unit">€</span></div>
               </div>
               <div class="field">
-                <label class="lbl" for="e-ine">Iné náklady</label>
+                <label class="lbl" for="e-ine" id="eIneLbl">Iné náklady</label>
                 <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="e-ine" data-e="ine"><span class="unit">€</span></div>
               </div>
               <div class="field" style="grid-column: 1 / -1">
@@ -1074,7 +1075,9 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     $('#eTitle').textContent = r.wait ? e.duvod : 'Prázdna jazda';
     $('#eSub').textContent = r.wait ? 'auto stojí, náklady bežia' : 'presun bez nákladu, bez tržby';
     $('#eTrasaLbl').textContent = r.wait ? 'Miesto' : 'Odkiaľ → kam';
-    $('#e-trasa').placeholder = r.wait ? 'napr. sklad Varšava' : 'napr. Mníchov → Žilina';
+    const customs = /colnic/i.test(e.duvod || '');
+    $('#e-trasa').placeholder = customs ? 'napr. colnica Vyšné Nemecké' : r.wait ? 'napr. sklad Varšava' : 'napr. Mníchov → Žilina';
+    $('#eIneLbl').textContent = customs ? 'Poplatky (colná deklarácia, špeditér, parkovanie)' : 'Iné náklady';
     $('#saveEmpty').textContent = r.wait ? 'Zapísať čakanie' : 'Zapísať prázdnu jazdu';
     if (r.wait) { renderWaitResult(r); return; }
     $('#e-dni').placeholder = r.autoDni ? fmt(r.autoDni, 1) : '';
@@ -1118,13 +1121,13 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         <div><div class="v">${eur(r.nakladHod, 2)}</div><div class="k">náklad za hodinu</div></div>
         <div><div class="v">${r.zdrzne > 0 ? eur(r.zdrzne) : '—'}</div><div class="k">zdržné</div></div>
       </div>
-      <p class="note" style="margin:12px 0 0">Každá hodina čakania ťa stojí <b>${eur(r.nakladHod, 2)}</b>, celý deň <b>${eur(r.c.fixDen + r.c.dieta)}</b>. Pri cieľovom zisku ${fmt(r.c.zisk)} % pýtaj zdržné aspoň <b>${eur(r.odporZdrzneDen)} za deň</b> (${eur(r.odporZdrzneDen / 24, 2)} za hodinu).</p>
+      <p class="note" style="margin:12px 0 0">Každá hodina státia ťa stojí <b>${eur((r.c.fixDen + r.c.dieta) / 24, 2)}</b>, celý deň <b>${eur(r.c.fixDen + r.c.dieta)}</b>${r.ine > 0 ? ' (bez poplatkov)' : ''}. Pri cieľovom zisku ${fmt(r.c.zisk)} % pýtaj zdržné aspoň <b>${eur(r.odporZdrzneDen)} za deň</b> (${eur(r.odporZdrzneDen / 24, 2)} za hodinu).</p>
       ${has ? `<div class="section-title"><h3>Rozpis nákladov</h3><span>€</span></div>
       <div class="bars">
         ${[
           ['Fixné náklady auta', r.fixCost, `${fmt(r.hodiny, 1)} h × ${eur(r.c.fixDen / 24, 2)}`, 'fix'],
           ['Diéty vodiča', r.dietaCost, `${fmt(r.hodiny, 1)} h × ${eur(r.c.dieta / 24, 2)}`, 'fix'],
-          ['Iné', r.ine, '', 'var'],
+          [/colnic/i.test(state.empty.duvod || '') ? 'Colné poplatky a iné' : 'Iné', r.ine, '', 'var'],
         ].filter(x => x[1] > 0).map(([n, x, d, kind]) => `
           <div class="bar">
             <div class="name">${n}${d ? `<em>${d}</em>` : ''}</div>
@@ -1286,7 +1289,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         const e = Object.assign(blankEmpty(vehId), { duvod, trasa, km, firma, myto, datum: addDays(today(), -ago) });
         state.offers.push(makeEmptyRun(e, calcEmpty(e)));
       });
-    [['Čakanie na nakládku', 'sklad Košice', 20, 'Zákazník C (príklad)', 120, 0], ['Čakanie na vykládku', 'Praha', 30, 'Zákazník D (príklad)', 54, 150]]
+    [['Čakanie na nakládku', 'sklad Košice', 20, 'Zákazník C (príklad)', 120, 0], ['Čakanie na vykládku', 'Praha', 30, 'Zákazník D (príklad)', 54, 150], ['Čakanie na colnici', 'colnica Vyšné Nemecké', 9, 'Zákazník B (príklad)', 24, 0]]
       .forEach(([duvod, trasa, hodiny, firma, ago, zdrzne]) => {
         const e = Object.assign(blankEmpty(vehId), { duvod, trasa, hodiny, firma, zdrzne, datum: addDays(today(), -ago) });
         state.offers.push(makeEmptyRun(e, calcEmpty(e)));
