@@ -1,34 +1,34 @@
 ﻿id;datum;dodavatel;popis;suma;kategoria_kod;kategoria;vozidlo_id;vozidlo;sposob_zaradenia
-wqlmhzy1;2026-07-08;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 590 l, palivová karta;2195;nafta;Nafta;4jo54zng;Ťahač 01 (príklad);automaticky
-su20yl3x;2026-07-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 610 l, palivová karta;2222;nafta;Nafta;4jo54zng;Ťahač 01 (príklad);automaticky
-vqy28a3e;2026-07-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);AdBlue 160 l;72;adblue;AdBlue;4jo54zng;Ťahač 01 (príklad);automaticky
-ztxlani9;2026-07-05;Mýtny systém (príklad);Vyúčtovanie elektronického mýta SK + AT;1180;myto;Mýto;4jo54zng;Ťahač 01 (príklad);automaticky
-hxig8mae;2026-07-10;Leasing Partner a.s. (príklad);Splátka leasingu ťahač;2100;leasing;Leasing a splátky;4jo54zng;Ťahač 01 (príklad);automaticky
-8ubpgdbu;2026-07-10;Poisťovňa Istota a.s. (príklad);PZP a havarijné poistenie;420;poistenie;Poistenie;4jo54zng;Ťahač 01 (príklad);automaticky
-mxt2olol;2026-07-12;Mzdy (príklad);Výplata vodiča;1650;mzdy;Mzdy a odvody;4jo54zng;Ťahač 01 (príklad);automaticky
-ntzqe5j7;2026-07-12;Sociálna poisťovňa;Odvody zamestnávateľa;650;mzdy;Mzdy a odvody;4jo54zng;Ťahač 01 (príklad);automaticky
-pycbal4j;2026-07-15;Účtovná kancelária Bilancia (príklad);Vedenie účtovníctva;450;rezia;Réžia;4jo54zng;Ťahač 01 (príklad);automaticky
-f46dxo62;2026-07-18;Parkovisko pri D1 (príklad);Strážené parkovanie;45;ine;Ostatné;4jo54zng;Ťahač 01 (príklad);automaticky
-hfk695ax;2026-08-08;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 590 l, palivová karta;2235;nafta;Nafta;4jo54zng;Ťahač 01 (príklad);automaticky
-q3wsfcpo;2026-08-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 610 l, palivová karta;2197;nafta;Nafta;4jo54zng;Ťahač 01 (príklad);automaticky
-vkajs0xn;2026-08-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);AdBlue 160 l;72;adblue;AdBlue;4jo54zng;Ťahač 01 (príklad);automaticky
-dpfzxbzp;2026-08-05;Mýtny systém (príklad);Vyúčtovanie elektronického mýta SK + AT;1240;myto;Mýto;4jo54zng;Ťahač 01 (príklad);automaticky
-m0ss2weo;2026-08-10;Leasing Partner a.s. (príklad);Splátka leasingu ťahač;2100;leasing;Leasing a splátky;4jo54zng;Ťahač 01 (príklad);automaticky
-x2fo3zn4;2026-08-10;Poisťovňa Istota a.s. (príklad);PZP a havarijné poistenie;420;poistenie;Poistenie;4jo54zng;Ťahač 01 (príklad);automaticky
-xb4vj53s;2026-08-12;Mzdy (príklad);Výplata vodiča;1650;mzdy;Mzdy a odvody;4jo54zng;Ťahač 01 (príklad);automaticky
-xjdbmnxj;2026-08-12;Sociálna poisťovňa;Odvody zamestnávateľa;650;mzdy;Mzdy a odvody;4jo54zng;Ťahač 01 (príklad);automaticky
-esph5os6;2026-08-15;Účtovná kancelária Bilancia (príklad);Vedenie účtovníctva;450;rezia;Réžia;4jo54zng;Ťahač 01 (príklad);automaticky
-sdpv4wmv;2026-08-18;Parkovisko pri D1 (príklad);Strážené parkovanie;55;ine;Ostatné;4jo54zng;Ťahač 01 (príklad);automaticky
-5kepnczj;2026-09-08;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 590 l, palivová karta;2275;nafta;Nafta;4jo54zng;Ťahač 01 (príklad);automaticky
-tsxtslrd;2026-09-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 610 l, palivová karta;2172;nafta;Nafta;4jo54zng;Ťahač 01 (príklad);automaticky
-12t1ijwl;2026-09-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);AdBlue 160 l;72;adblue;AdBlue;4jo54zng;Ťahač 01 (príklad);automaticky
-v5ij5ocl;2026-09-05;Mýtny systém (príklad);Vyúčtovanie elektronického mýta SK + AT;1300;myto;Mýto;4jo54zng;Ťahač 01 (príklad);automaticky
-1m81o59x;2026-09-10;Leasing Partner a.s. (príklad);Splátka leasingu ťahač;2100;leasing;Leasing a splátky;4jo54zng;Ťahač 01 (príklad);automaticky
-xyk9a9z2;2026-09-10;Poisťovňa Istota a.s. (príklad);PZP a havarijné poistenie;420;poistenie;Poistenie;4jo54zng;Ťahač 01 (príklad);automaticky
-bh17ode5;2026-09-12;Mzdy (príklad);Výplata vodiča;1650;mzdy;Mzdy a odvody;4jo54zng;Ťahač 01 (príklad);automaticky
-dx5e3h11;2026-09-12;Sociálna poisťovňa;Odvody zamestnávateľa;650;mzdy;Mzdy a odvody;4jo54zng;Ťahač 01 (príklad);automaticky
-qm5f9m6a;2026-09-15;Účtovná kancelária Bilancia (príklad);Vedenie účtovníctva;450;rezia;Réžia;4jo54zng;Ťahač 01 (príklad);automaticky
-ogiacp9y;2026-09-18;Parkovisko pri D1 (príklad);Strážené parkovanie;65;ine;Ostatné;4jo54zng;Ťahač 01 (príklad);automaticky
-pu61s7i1;2026-08-14;Truck Servis Žilina s.r.o. (príklad);Výmena oleja a filtrov, brzdové platničky;980;servis;Servis a opravy;4jo54zng;Ťahač 01 (príklad);automaticky
-ah2qn8k5;2026-09-03;Pneuservis Horák (príklad);2 ks pneumatiky hnacia náprava;1240;pneu;Pneumatiky;4jo54zng;Ťahač 01 (príklad);automaticky
-u1rvahun;2026-09-20;Obchod Kovo s.r.o. (príklad);Upínacie popruhy 10 ks;86;nezaradene;Nezaradené;4jo54zng;Ťahač 01 (príklad);nezaradené
+yds0h56o;2026-07-08;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 590 l, palivová karta;2195;nafta;Nafta;96ggrqtr;Ťahač 01 (príklad);automaticky
+hadxitvj;2026-07-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 610 l, palivová karta;2222;nafta;Nafta;96ggrqtr;Ťahač 01 (príklad);automaticky
+bbtzwxpu;2026-07-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);AdBlue 160 l;72;adblue;AdBlue;96ggrqtr;Ťahač 01 (príklad);automaticky
+fusft6tg;2026-07-05;Mýtny systém (príklad);Vyúčtovanie elektronického mýta SK + AT;1180;myto;Mýto;96ggrqtr;Ťahač 01 (príklad);automaticky
+y97s6xh2;2026-07-10;Leasing Partner a.s. (príklad);Splátka leasingu ťahač;2100;leasing;Leasing a splátky;96ggrqtr;Ťahač 01 (príklad);automaticky
+ize2jb5c;2026-07-10;Poisťovňa Istota a.s. (príklad);PZP a havarijné poistenie;420;poistenie;Poistenie;96ggrqtr;Ťahač 01 (príklad);automaticky
+9nzowonq;2026-07-12;Mzdy (príklad);Výplata vodiča;1650;mzdy;Mzdy a odvody;96ggrqtr;Ťahač 01 (príklad);automaticky
+lcv5jevl;2026-07-12;Sociálna poisťovňa;Odvody zamestnávateľa;650;mzdy;Mzdy a odvody;96ggrqtr;Ťahač 01 (príklad);automaticky
+5635ei35;2026-07-15;Účtovná kancelária Bilancia (príklad);Vedenie účtovníctva;450;rezia;Réžia;96ggrqtr;Ťahač 01 (príklad);automaticky
+vast5tdg;2026-07-18;Parkovisko pri D1 (príklad);Strážené parkovanie;45;ine;Ostatné;96ggrqtr;Ťahač 01 (príklad);automaticky
+2g5q8y1w;2026-08-08;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 590 l, palivová karta;2235;nafta;Nafta;96ggrqtr;Ťahač 01 (príklad);automaticky
+n3svcp46;2026-08-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 610 l, palivová karta;2197;nafta;Nafta;96ggrqtr;Ťahač 01 (príklad);automaticky
+eu4qizvc;2026-08-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);AdBlue 160 l;72;adblue;AdBlue;96ggrqtr;Ťahač 01 (príklad);automaticky
+yz647f7n;2026-08-05;Mýtny systém (príklad);Vyúčtovanie elektronického mýta SK + AT;1240;myto;Mýto;96ggrqtr;Ťahač 01 (príklad);automaticky
+miy583ar;2026-08-10;Leasing Partner a.s. (príklad);Splátka leasingu ťahač;2100;leasing;Leasing a splátky;96ggrqtr;Ťahač 01 (príklad);automaticky
+0j3jzl5h;2026-08-10;Poisťovňa Istota a.s. (príklad);PZP a havarijné poistenie;420;poistenie;Poistenie;96ggrqtr;Ťahač 01 (príklad);automaticky
+go89qmk6;2026-08-12;Mzdy (príklad);Výplata vodiča;1650;mzdy;Mzdy a odvody;96ggrqtr;Ťahač 01 (príklad);automaticky
+c0cdsltz;2026-08-12;Sociálna poisťovňa;Odvody zamestnávateľa;650;mzdy;Mzdy a odvody;96ggrqtr;Ťahač 01 (príklad);automaticky
+n0kb8i17;2026-08-15;Účtovná kancelária Bilancia (príklad);Vedenie účtovníctva;450;rezia;Réžia;96ggrqtr;Ťahač 01 (príklad);automaticky
+bditxw02;2026-08-18;Parkovisko pri D1 (príklad);Strážené parkovanie;55;ine;Ostatné;96ggrqtr;Ťahač 01 (príklad);automaticky
+96kmjou3;2026-09-08;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 590 l, palivová karta;2275;nafta;Nafta;96ggrqtr;Ťahač 01 (príklad);automaticky
+2dd5dr11;2026-09-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);Nafta 1 610 l, palivová karta;2172;nafta;Nafta;96ggrqtr;Ťahač 01 (príklad);automaticky
+1gftxa0k;2026-09-22;Čerpacia stanica Diesel Plus s.r.o. (príklad);AdBlue 160 l;72;adblue;AdBlue;96ggrqtr;Ťahač 01 (príklad);automaticky
+ufwmo42x;2026-09-05;Mýtny systém (príklad);Vyúčtovanie elektronického mýta SK + AT;1300;myto;Mýto;96ggrqtr;Ťahač 01 (príklad);automaticky
+7w2pto60;2026-09-10;Leasing Partner a.s. (príklad);Splátka leasingu ťahač;2100;leasing;Leasing a splátky;96ggrqtr;Ťahač 01 (príklad);automaticky
+6oedk67u;2026-09-10;Poisťovňa Istota a.s. (príklad);PZP a havarijné poistenie;420;poistenie;Poistenie;96ggrqtr;Ťahač 01 (príklad);automaticky
+1mg1urji;2026-09-12;Mzdy (príklad);Výplata vodiča;1650;mzdy;Mzdy a odvody;96ggrqtr;Ťahač 01 (príklad);automaticky
+rmji4ifx;2026-09-12;Sociálna poisťovňa;Odvody zamestnávateľa;650;mzdy;Mzdy a odvody;96ggrqtr;Ťahač 01 (príklad);automaticky
+ph40v43o;2026-09-15;Účtovná kancelária Bilancia (príklad);Vedenie účtovníctva;450;rezia;Réžia;96ggrqtr;Ťahač 01 (príklad);automaticky
+x9mwjima;2026-09-18;Parkovisko pri D1 (príklad);Strážené parkovanie;65;ine;Ostatné;96ggrqtr;Ťahač 01 (príklad);automaticky
+vjok7cpq;2026-08-14;Truck Servis Žilina s.r.o. (príklad);Výmena oleja a filtrov, brzdové platničky;980;servis;Servis a opravy;96ggrqtr;Ťahač 01 (príklad);automaticky
+8mraol34;2026-09-03;Pneuservis Horák (príklad);2 ks pneumatiky hnacia náprava;1240;pneu;Pneumatiky;96ggrqtr;Ťahač 01 (príklad);automaticky
+rnypndbe;2026-09-20;Obchod Kovo s.r.o. (príklad);Upínacie popruhy 10 ks;86;nezaradene;Nezaradené;96ggrqtr;Ťahač 01 (príklad);nezaradené

@@ -266,6 +266,28 @@ table.list select { padding: 5px 6px; font-size: 13px; width: auto; max-width: 1
 .pdfcard ul li.warn { color: var(--warn); }
 .pdfcard details summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
 .pdfcard pre { max-height: 220px; overflow: auto; font: 12px/1.4 var(--f-num); background: var(--surface-2); padding: 8px; border-radius: 6px; white-space: pre-wrap; }
+/* sprievodca a nastavenia */
+.wiz { max-width: 860px; margin: 0 auto; display: grid; gap: 18px; }
+.wiz .steps-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+.wiz .steps-bar span { font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 99px; background: var(--surface-2); color: var(--muted); }
+.wiz .steps-bar span.on { background: var(--ink); color: var(--bg); }
+.wiz .steps-bar span.done { background: var(--accent-soft); color: var(--accent); }
+.wiz h2 { font-size: 30px; }
+.wiz .lead { margin: 0; color: var(--ink-2); max-width: 65ch; }
+.typecards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.typecard { border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 8px; align-content: start; }
+.typecard.on { border-color: var(--accent); }
+.typecard h4 { margin: 0; font: 700 19px/1.2 var(--f-display); }
+.wizfoot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+.preview { display: grid; gap: 6px; }
+.preview .row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.preview .row .num { text-align: right; }
+.setgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; }
+label.btn { font: 600 14px/1 var(--f-body); border-radius: var(--r); padding: 10px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); white-space: nowrap; }
+label.btn:hover { border-color: var(--ink-2); }
+label.btn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.btn.wrap { white-space: normal; text-align: left; line-height: 1.3; }
+.banner { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; background: var(--warn-soft); color: var(--ink); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
 details.rules { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
 details.rules summary { cursor: pointer; font-weight: 600; }
 details.rules ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
@@ -311,7 +333,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       </div>
       <div>
         <h1>Drivee</h1>
-        <p>Koľko ťa stojí kilometer a či sa ponuka z burzy oplatí</p>
+        <p id="subtitle">Koľko ťa stojí kilometer a či sa ponuka z burzy oplatí</p>
       </div>
     </div>
     <nav class="tabs" role="tablist">
@@ -321,8 +343,11 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       <button role="tab" data-tab="firmy" id="tab-firmy">4. Firmy</button>
       <button role="tab" data-tab="powerbi" id="tab-powerbi">5. Financie a Power BI</button>
       <button role="tab" data-tab="faktury" id="tab-faktury">6. Nákladové faktúry<span class="count" id="invCount"></span></button>
+      <button role="tab" data-tab="nastavenia" id="tab-nastavenia">7. Nastavenia</button>
     </nav>
   </header>
+  <div class="banner" id="backupBanner" hidden></div>
+  <section id="wizard" hidden><div class="panel wiz" id="wizPanel"></div></section>
 
   <!-- ZÁLOŽKA 1: NÁKLADY VOZIDLA -->
   <section id="view-vozidla" class="grid">
@@ -420,6 +445,11 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
               <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="t-dni" data-t="dni"><span class="unit">dni</span></div>
               <div class="hint" id="dniHint"></div>
             </div>
+            <div class="field">
+              <label class="lbl" for="t-krajina">Krajina (diéty)</label>
+              <select id="t-krajina" data-t="krajina"></select>
+              <div class="hint" id="tDietHint"></div>
+            </div>
           </div>
         </fieldset>
         <fieldset>
@@ -499,6 +529,10 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
                 <label class="lbl" for="e-ine" id="eIneLbl">Iné náklady</label>
                 <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="e-ine" data-e="ine"><span class="unit">€</span></div>
               </div>
+              <div class="field">
+                <label class="lbl" for="e-krajina">Krajina (diéty)</label>
+                <select id="e-krajina" data-e="krajina"></select>
+              </div>
               <div class="field" style="grid-column: 1 / -1">
                 <label class="lbl" for="e-firma">Priradiť k firme (nepovinné)</label>
                 <input type="text" id="e-firma" data-e="firma" list="firmyList2" placeholder="kvôli ktorej zákazke to bolo">
@@ -540,6 +574,10 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
 
   <section id="view-powerbi" hidden>
     <div class="panel" id="pbiPanel"></div>
+  </section>
+
+  <section id="view-nastavenia" hidden>
+    <div class="panel" id="setPanel"></div>
   </section>
 
   <footer>
@@ -596,14 +634,23 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   const uid = () => Math.random().toString(36).slice(2, 10);
   const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-  const blankEmpty = (vehId) => ({ duvod: 'Pristavenie na nakládku', trasa: '', datum: today(), vehId, km: '', dni: '', myto: '', ine: '', firma: '', hodiny: '', zdrzne: '' });
+  const blankEmpty = (vehId) => ({ duvod: 'Pristavenie na nakládku', trasa: '', datum: today(), vehId, km: '', dni: '', myto: '', ine: '', firma: '', hodiny: '', zdrzne: '', krajina: '' });
+  // Sadzby stravného sú orientačné a dajú sa prepísať v Nastaveniach (tuzemsko: opatrenie MPSVR SR, zahraničie: opatrenie MF SR).
+  const COUNTRIES = [['SK', 'Slovensko', null], ['CZ', 'Česko', 35], ['PL', 'Poľsko', 35], ['HU', 'Maďarsko', 35], ['AT', 'Rakúsko', 45],
+    ['DE', 'Nemecko', 45], ['IT', 'Taliansko', 45], ['FR', 'Francúzsko', 45], ['NL', 'Holandsko', 45], ['BE', 'Belgicko', 45],
+    ['SI', 'Slovinsko', 40], ['HR', 'Chorvátsko', 40], ['RO', 'Rumunsko', 35], ['DK', 'Dánsko', 50], ['SE', 'Švédsko', 50],
+    ['ES', 'Španielsko', 40], ['UA', 'Ukrajina', 40]];
+  const defaultSettings = () => ({ firma: '', dph: 23, ciel: 12, krajina: 'DE', tuz: { b1: 8.3, b2: 12.4, b3: 18.4 },
+    zahr: Object.fromEntries(COUNTRIES.filter(c => c[2] != null).map(c => [c[0], c[2]])), lastBackup: null });
+  const plural = (n, one, few, many) => `${n} ${n === 1 ? one : n >= 2 && n <= 4 ? few : many}`;
+  const countryName = (code) => (COUNTRIES.find(c => c[0] === code) || [code, code])[1];
   const isWaitReason = (d) => /^Čakanie/.test(String(d || ''));
-  const blankTrip = (vehId) => ({ datum: today(), firma: '', splatnost: '', trasa: '', vehId, cena: '', cenaTyp: 'spolu', km: '', prazdne: '', dni: '', myto: '', ine: '' });
+  const blankTrip = (vehId) => ({ krajina: '', datum: today(), firma: '', splatnost: '', trasa: '', vehId, cena: '', cenaTyp: 'spolu', km: '', prazdne: '', dni: '', myto: '', ine: '' });
 
   function defaultState() {
     const v = Object.assign({ id: uid(), example: true }, PRESETS.tahac, { name: 'Ťahač 01 (príklad)' });
     return {
-      vehicles: [v], activeId: v.id, tab: 'vozidla', tripMode: 'ponuka', empty: blankEmpty(v.id), offers: [], invoices: [], supplierRules: {}, invMonth: 'all', invVeh: 'all', invOnlyNone: false, firmFilter: 'vsetky', firmMetric: 'ziskDen',
+      vehicles: [v], activeId: v.id, tab: 'vozidla', setupDone: false, settings: defaultSettings(), tripMode: 'ponuka', empty: blankEmpty(v.id), offers: [], invoices: [], supplierRules: {}, invMonth: 'all', invVeh: 'all', invOnlyNone: false, firmFilter: 'vsetky', firmMetric: 'ziskDen',
       trip: { datum: today(), firma: 'Zákazník A (príklad)', splatnost: '30', trasa: 'Žilina → Mníchov (príklad)', vehId: v.id, cena: '1050', cenaTyp: 'spolu', km: '620', prazdne: '80', dni: '', myto: '165', ine: '0' },
     };
   }
@@ -612,8 +659,17 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return null;
-      const s = JSON.parse(raw);
+      return normalize(JSON.parse(raw));
+    } catch (e) { return null; }
+  }
+  function normalize(s) {
+    try {
       if (!s || !Array.isArray(s.vehicles) || !s.vehicles.length) return null;
+      const d = defaultSettings();
+      s.settings = Object.assign(d, s.settings || {});
+      s.settings.tuz = Object.assign(defaultSettings().tuz, s.settings.tuz || {});
+      s.settings.zahr = Object.assign(defaultSettings().zahr, s.settings.zahr || {});
+      if (s.setupDone == null) s.setupDone = true;
       s.offers = Array.isArray(s.offers) ? s.offers : [];
       s.invoices = Array.isArray(s.invoices) ? s.invoices : [];
       s.supplierRules = s.supplierRules && typeof s.supplierRules === 'object' ? s.supplierRules : {};
@@ -628,6 +684,22 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* bez úložiska appka stále funguje */ } }
 
   let state = load() || defaultState();
+
+  // Stravné: tuzemsko podľa pásiem 5–12 h / 12–18 h / nad 18 h, zahraničie 25 % do 6 h, 50 % do 12 h, 100 % nad 12 h.
+  function dietyFor(code, hours) {
+    const S = state.settings; if (!(hours > 0)) return 0;
+    const full = Math.floor(hours / 24), rest = hours - full * 24;
+    if (code === 'SK') {
+      const band = (h) => h < 5 ? 0 : h <= 12 ? num(S.tuz.b1) : h <= 18 ? num(S.tuz.b2) : num(S.tuz.b3);
+      return full * num(S.tuz.b3) + band(rest);
+    }
+    const base = num(S.zahr[code]);
+    return full * base + base * (rest <= 0 ? 0 : rest <= 6 ? 0.25 : rest <= 12 ? 0.5 : 1);
+  }
+  const KRAJ_LBL = (r) => (r.krajina ? `${fmt(r.dni, 1)} d · ${countryName(r.krajina)}` : `${fmt(r.dni, 1)} d × ${eur(r.c.dieta)}`);
+  const dayRate = (code) => code === 'SK' ? num(state.settings.tuz.b3) : num(state.settings.zahr[code]);
+  const countryOptions = (sel, vehDieta) => `<option value=""${!sel ? ' selected' : ''}>Podľa vozidla (${fmt(vehDieta)} €/deň)</option>` +
+    COUNTRIES.map(([c, n]) => `<option value="${c}"${c === sel ? ' selected' : ''}>${n} (${fmt(dayRate(c), 2)} €/deň)</option>`).join('');
 
   // ---------- Pomocné ----------
   const $ = (s) => document.querySelector(s);
@@ -697,7 +769,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     const dni = String(t.dni).trim() !== '' ? num(t.dni) : autoDni;
     const varCost = c.varKm * kmTotal;
     const fixCost = c.fixDen * dni;
-    const dietaCost = c.dieta * dni;
+    const dietaCost = t.krajina ? dietyFor(t.krajina, dni * 24) : c.dieta * dni;
     const myto = num(t.myto), ine = num(t.ine);
     const naklady = varCost + fixCost + dietaCost + myto + ine;
     const cena = t.cenaTyp === 'km' ? num(t.cena) * km : num(t.cena);
@@ -707,7 +779,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     let verdict = 'none';
     if (cena > 0 && kmTotal > 0) verdict = ziskPct >= c.zisk ? 'good' : (zisk >= 0 ? 'warn' : 'bad');
     return {
-      v, c, km, prazdne, kmTotal, autoDni, dni, varCost, fixCost, dietaCost, myto, ine, naklady, cena, zisk, ziskPct, odporucana, verdict,
+      krajina: t.krajina || '', v, c, km, prazdne, kmTotal, autoDni, dni, varCost, fixCost, dietaCost, myto, ine, naklady, cena, zisk, ziskPct, odporucana, verdict,
       ziskDen: dni > 0 ? zisk / dni : 0,
       cenaKm: kmTotal > 0 ? cena / kmTotal : 0,
       cenaKmLoaded: km > 0 ? cena / km : 0,
@@ -722,13 +794,14 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   function setTab(tab) {
     state.tab = tab; save();
     document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
-    ['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
+    ['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury', 'nastavenia'].forEach(t => { $('#view-' + t).hidden = t !== tab; });
     if (tab === 'jazda') renderJazda(true);
     if (tab === 'ponuky') renderOffers();
     if (tab === 'vozidla') renderVehicle(true);
     if (tab === 'firmy') renderFirms();
     if (tab === 'powerbi') renderPbi();
     if (tab === 'faktury') renderInvoices(true);
+    if (tab === 'nastavenia') renderSettings();
   }
   document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
@@ -751,10 +824,13 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
               <label class="lbl" for="f-${k}">${label}</label>
               <div class="inwrap"><input type="text" inputmode="decimal" class="n" id="f-${k}" data-k="${k}" value="${esc(v[k] ?? '')}"><span class="unit">${unit}</span></div>
               ${hint ? `<div class="hint">${hint}</div>` : ''}
+              ${k === 'dieta' ? `<div class="hint">Plná denná sadzba pre ${countryName(state.settings.krajina)}: ${eur(dayRate(state.settings.krajina), 2)} <button type="button" class="btn small" id="useDayRate" style="margin-left:4px">Použiť</button></div>` : ''}
             </div>`).join('')}
         </div>
       </fieldset>`).join('');
     resetDelete();
+    const ud = $('#useDayRate');
+    if (ud) ud.addEventListener('click', () => { const v2 = vehById(state.activeId); v2.dieta = String(dayRate(state.settings.krajina)); v2.example = false; save(); renderVehicle(true); toast('Diéty nastavené podľa krajiny'); });
   }
 
   function renderVehicle(full) {
@@ -919,7 +995,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
   $('#addVeh').addEventListener('click', () => {
     const p = $('#presetSelect').value;
     const count = state.vehicles.length + 1;
-    const v = Object.assign({ id: uid() }, PRESETS[p], { name: PRESETS[p].name + ' ' + String(count).padStart(2, '0') });
+    const v = Object.assign({ id: uid() }, PRESETS[p], { name: PRESETS[p].name + ' ' + String(count).padStart(2, '0'), zisk: state.settings.ciel, dieta: dayRate(state.settings.krajina) || PRESETS[p].dieta });
     state.vehicles.push(v); state.activeId = v.id; save(); renderVehicle(true);
     toast('Vozidlo pridané – uprav jeho náklady');
   });
@@ -952,12 +1028,14 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     if (!state.vehicles.some(v => v.id === t.vehId)) t.vehId = state.vehicles[0].id;
     if (full) {
       $('#t-veh').innerHTML = vehOptions(t.vehId);
+      $('#t-krajina').innerHTML = countryOptions(t.krajina, num(vehById(t.vehId).dieta));
       $('#firmyList').innerHTML = firmNames().map(n => `<option value="${esc(n)}"></option>`).join('');
       document.querySelectorAll('#tripForm [data-t]').forEach(el => { if (el.tagName !== 'SELECT') el.value = t[el.dataset.t] ?? ''; });
     }
     document.querySelectorAll('[data-ct]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ct === t.cenaTyp ? 'true' : 'false'));
     const r = calcTrip(t);
     $('#t-dni').placeholder = r.autoDni ? fmt(r.autoDni, 1) : '';
+    $('#tDietHint').textContent = t.krajina ? `Diéty za ${fmt(r.dni * 24)} h: ${eur(r.dietaCost, 2)}` : '';
     $('#dniHint').textContent = r.autoDni ? `Prázdne = automaticky ${fmt(r.autoDni, 1)} d (${fmt(r.c.kmDen)} km/deň)` : 'Prázdne = vypočíta sa z km';
 
     const V = {
@@ -989,7 +1067,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         ${[
           ['Nafta, AdBlue, pneu, servis', r.varCost, `${fmt(r.kmTotal)} km × ${fmt(r.c.varKm, 3)} €`, 'var'],
           ['Fixné náklady auta', r.fixCost, `${fmt(r.dni, 1)} d × ${eur(r.c.fixDen)}`, 'fix'],
-          ['Diéty vodiča', r.dietaCost, `${fmt(r.dni, 1)} d × ${eur(r.c.dieta)}`, 'fix'],
+          ['Diéty vodiča', r.dietaCost, KRAJ_LBL(r), 'fix'],
           ['Mýto', r.myto, '', 'var'],
           ['Iné', r.ine, '', 'var'],
         ].filter(x => x[1] > 0).map(([n, x, d, kind]) => `
@@ -1007,6 +1085,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     state.trip[k] = e.target.value; save(); renderTrip(false);
   });
   $('#tripForm').addEventListener('change', (e) => {
+    if (e.target.id === 't-veh') { $('#t-krajina').innerHTML = countryOptions(state.trip.krajina, num(vehById(e.target.value).dieta)); }
     if (e.target.id === 't-veh') { state.trip.vehId = e.target.value; state.trip.dni = ''; $('#t-dni').value = ''; save(); renderTrip(false); }
   });
   $('#tripForm').addEventListener('submit', (e) => e.preventDefault());
@@ -1026,7 +1105,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       km: r.km, kmTotal: r.kmTotal, dni: r.dni, naklady: r.naklady, cena: r.cena, zisk: r.zisk, ziskPct: r.ziskPct,
       ziskDen: r.ziskDen, cenaKm: r.cenaKm, verdict: r.verdict, ciel: r.c.zisk,
       splatnost: String(t.splatnost || '').trim() === '' ? null : num(t.splatnost), stav, datum: t.datum || today(),
-      vozidloId: r.v.id, prazdne: r.prazdne, myto: r.myto, ine: r.ine, varCost: r.varCost, fixCost: r.fixCost, dietaCost: r.dietaCost,
+      krajina: t.krajina || '', vozidloId: r.v.id, prazdne: r.prazdne, myto: r.myto, ine: r.ine, varCost: r.varCost, fixCost: r.fixCost, dietaCost: r.dietaCost,
       zaplatena: false,
     };
   }
@@ -1042,7 +1121,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     const v = vehById(e.vehId); const c = calc(v);
     if (isWaitReason(e.duvod)) {
       const hodiny = num(e.hodiny), dni = hodiny / 24;
-      const fixCost = c.fixDen * dni, dietaCost = c.dieta * dni, ine = num(e.ine), zdrzne = num(e.zdrzne);
+      const fixCost = c.fixDen * dni, dietaCost = e.krajina ? dietyFor(e.krajina, hodiny) : c.dieta * dni, ine = num(e.ine), zdrzne = num(e.zdrzne);
       const naklady = fixCost + dietaCost + ine;
       return { wait: true, v, c, km: 0, autoDni: 0, dni, hodiny, varCost: 0, fixCost, dietaCost, myto: 0, ine, naklady, zdrzne, nakladKm: 0,
         nakladHod: hodiny > 0 ? naklady / hodiny : (c.fixDen + c.dieta) / 24, odporZdrzneDen: (c.fixDen + c.dieta) * (1 + c.zisk / 100) };
@@ -1050,9 +1129,9 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     const km = num(e.km);
     const autoDni = km > 0 ? Math.max(0.5, Math.ceil(km / c.kmDen * 2) / 2) : 0;
     const dni = String(e.dni).trim() !== '' ? num(e.dni) : autoDni;
-    const varCost = c.varKm * km, fixCost = c.fixDen * dni, dietaCost = c.dieta * dni, myto = num(e.myto), ine = num(e.ine);
+    const varCost = c.varKm * km, fixCost = c.fixDen * dni, dietaCost = e.krajina ? dietyFor(e.krajina, dni * 24) : c.dieta * dni, myto = num(e.myto), ine = num(e.ine);
     const naklady = varCost + fixCost + dietaCost + myto + ine;
-    return { v, c, km, autoDni, dni, varCost, fixCost, dietaCost, myto, ine, naklady, nakladKm: km > 0 ? naklady / km : 0 };
+    return { krajina: e.krajina || '', v, c, km, autoDni, dni, varCost, fixCost, dietaCost, myto, ine, naklady, nakladKm: km > 0 ? naklady / km : 0 };
   }
   function renderJazda(full) {
     const m = state.tripMode === 'prazdna' ? 'prazdna' : 'ponuka';
@@ -1067,6 +1146,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     if (!state.vehicles.some(v => v.id === e.vehId)) e.vehId = state.vehicles[0].id;
     if (full) {
       $('#e-veh').innerHTML = vehOptions(e.vehId);
+      $('#e-krajina').innerHTML = countryOptions(e.krajina, num(vehById(e.vehId).dieta));
       $('#firmyList2').innerHTML = firmNames().map(n => `<option value="${esc(n)}"></option>`).join('');
       document.querySelectorAll('#emptyForm [data-e]').forEach(el => { if (el.id !== 'e-veh') el.value = e[el.dataset.e] ?? ''; });
     }
@@ -1099,7 +1179,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
         ${[
           ['Nafta, AdBlue, pneu, servis', r.varCost, `${fmt(r.km)} km × ${fmt(r.c.varKm, 3)} €`, 'var'],
           ['Fixné náklady auta', r.fixCost, `${fmt(r.dni, 1)} d × ${eur(r.c.fixDen)}`, 'fix'],
-          ['Diéty vodiča', r.dietaCost, `${fmt(r.dni, 1)} d × ${eur(r.c.dieta)}`, 'fix'],
+          ['Diéty vodiča', r.dietaCost, KRAJ_LBL(r), 'fix'],
           ['Mýto', r.myto, '', 'var'],
           ['Iné', r.ine, '', 'var'],
         ].filter(x => x[1] > 0).map(([n, x, d, kind]) => `
@@ -1127,7 +1207,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
       <div class="bars">
         ${[
           ['Fixné náklady auta', r.fixCost, `${fmt(r.hodiny, 1)} h × ${eur(r.c.fixDen / 24, 2)}`, 'fix'],
-          ['Diéty vodiča', r.dietaCost, `${fmt(r.hodiny, 1)} h × ${eur(r.c.dieta / 24, 2)}`, 'fix'],
+          ['Diéty vodiča', r.dietaCost, state.empty.krajina ? `${fmt(r.hodiny, 1)} h · ${countryName(state.empty.krajina)}` : `${fmt(r.hodiny, 1)} h × ${eur(r.c.dieta / 24, 2)}`, 'fix'],
           [/colnic/i.test(state.empty.duvod || '') ? 'Colné poplatky a iné' : /prekl/i.test(state.empty.duvod || '') ? 'Poplatky za prekládku a iné' : 'Iné', r.ine, '', 'var'],
         ].filter(x => x[1] > 0).map(([n, x, d, kind]) => `
           <div class="bar">
@@ -1501,18 +1581,19 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     : (window.claude && typeof window.claude.use === 'function'
       ? window.claude.use('downloads').then(d => (dlCap = d), () => (dlCap = null))
       : Promise.resolve(dlCap = null)));
-  async function downloadFile(name, text) {
+  async function downloadFile(name, text, mime) {
+    const isCsv = !mime;
     const dl = await getDl();
     if (dl) {
-      try { await dl.save({ filename: name, data: '\ufeff' + text }); toast(`${name} uložený`); return true; }
+      try { await dl.save({ filename: name, data: (isCsv ? '\ufeff' : '') + text }); toast(`${name} uložený`); return true; }
       catch (e) {
         if (e && e.code === 'declined') return false;
         if (e && e.code === 'rate_limited') { toast('Najprv dokonči predchádzajúce sťahovanie'); return false; }
-        toast('Súbor sa nepodarilo stiahnuť – použi Kopírovať'); return false;
+        toast(isCsv ? 'Súbor sa nepodarilo stiahnuť – použi Kopírovať' : 'Súbor sa nepodarilo stiahnuť'); return false;
       }
     }
     try {
-      const url = URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' }));
+      const url = URL.createObjectURL(new Blob([(isCsv ? '\ufeff' : '') + text], { type: mime || 'text/csv;charset=utf-8' }));
       const a = document.createElement('a');
       a.href = url; a.download = name; document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
@@ -1830,7 +1911,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 70ch
     let bez = findAmt([/(spolu|celkom|suma|cena) bez dph/, /zaklad (dane|dph)( spolu| celkom)?/, /bez dph/]);
     const spolu = findAmt([/(celkom|spolu|suma) k uhrade/, /k uhrade/, /na uhradu/, /celkom s dph|spolu s dph/, /^(celkom|spolu)\b/], 'last');
     let bezOdhad = false;
-    if (bez == null && spolu != null) { bez = Math.round(spolu / 1.23 * 100) / 100; bezOdhad = true; notes.push('Sumu bez DPH som nenašiel, vypočítal som ju z celkovej sumy ÷ 1,23. Skontroluj ju.'); }
+    if (bez == null && spolu != null) { bez = Math.round(spolu / (1 + num(state.settings.dph) / 100) * 100) / 100; bezOdhad = true; notes.push('Sumu bez DPH som nenašiel, vypočítal som ju z celkovej sumy ÷ ' + fmt(1 + num(state.settings.dph) / 100, 2) + '. Skontroluj ju.'); }
     if (bez != null && spolu != null && bez > spolu + 0.01) notes.push('Suma bez DPH je vyššia ako celková suma. Skontroluj ju.');
     // popis = prvé položky z tabuľky
     let popis = '';
@@ -2255,10 +2336,207 @@ Sumy ako čísla s desatinnou bodkou. Ak údaj nevieš, daj null.`;
     });
   }
 
+  // ---------- Záložka 7: nastavenia a záloha ----------
+  function updateHeader() {
+    $('#subtitle').textContent = state.settings.firma ? `${state.settings.firma} · náklady na kilometer a ocenenie jázd` : 'Koľko ťa stojí kilometer a či sa ponuka z burzy oplatí';
+  }
+  const backupAge = () => state.settings.lastBackup ? Math.floor((Date.now() - new Date(state.settings.lastBackup).getTime()) / 86400000) : null;
+  let bannerSnoozed = false;
+  function updateBackupBanner() {
+    const b = $('#backupBanner');
+    const hasData = state.offers.length + state.invoices.length > 0;
+    const age = backupAge();
+    if (!state.setupDone || bannerSnoozed || !hasData || (age != null && age < 14)) { b.hidden = true; return; }
+    b.hidden = false;
+    b.innerHTML = `<span>Dáta sú uložené len v tomto prehliadači. ${age == null ? 'Zálohu si ešte nemáš.' : `Posledná záloha je ${age} dní stará.`}</span>
+      <span style="display:flex;gap:6px"><button class="btn small primary" id="bnBackup">Stiahnuť zálohu</button><button class="btn small" id="bnLater">Neskôr</button></span>`;
+    $('#bnBackup').addEventListener('click', downloadBackup);
+    $('#bnLater').addEventListener('click', () => { bannerSnoozed = true; updateBackupBanner(); });
+  }
+  async function downloadBackup() {
+    const data = JSON.stringify({ app: 'drivee', verzia: 1, vytvorene: new Date().toISOString(), data: state });
+    const ok = await downloadFile(`drivee-zaloha-${today()}.json`, data, 'application/json');
+    if (ok) { state.settings.lastBackup = new Date().toISOString(); save(); updateBackupBanner(); if (state.tab === 'nastavenia') renderSettings(); }
+  }
+  function rerenderAll() {
+    updateHeader(); updateCount(); updateInvCount(); updateBackupBanner(); pdfPending = [];
+    applySetupMode(); if (state.setupDone) setTab('vozidla');
+  }
+
+  function renderSettings() {
+    const S = state.settings, p = $('#setPanel'), age = backupAge();
+    p.innerHTML = `
+      <div class="section-title" style="margin-top:0"><h3>Firma</h3></div>
+      <div class="setgrid">
+        <div style="grid-column: span 2"><label class="lbl" for="s-firma">Názov firmy</label><input type="text" id="s-firma" data-s="firma" value="${esc(S.firma)}"></div>
+        <div><label class="lbl" for="s-dph">Sadzba DPH</label><div class="inwrap" style="display:flex"><input type="text" inputmode="decimal" class="n" id="s-dph" data-s="dph" value="${esc(S.dph)}" style="border-radius:var(--r) 0 0 var(--r)"><span class="unit" style="display:grid;place-items:center;padding:0 9px;border:1px solid var(--line);border-left:0;border-radius:0 var(--r) var(--r) 0;font-size:12px;color:var(--muted)">%</span></div></div>
+        <div><label class="lbl" for="s-ciel">Cieľový zisk (nové autá)</label><div class="inwrap" style="display:flex"><input type="text" inputmode="decimal" class="n" id="s-ciel" data-s="ciel" value="${esc(S.ciel)}" style="border-radius:var(--r) 0 0 var(--r)"><span class="unit" style="display:grid;place-items:center;padding:0 9px;border:1px solid var(--line);border-left:0;border-radius:0 var(--r) var(--r) 0;font-size:12px;color:var(--muted)">%</span></div></div>
+        <div><label class="lbl" for="s-krajina">Hlavná krajina jázd</label><select id="s-krajina" data-s="krajina">${COUNTRIES.map(([c, n]) => `<option value="${c}"${c === S.krajina ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
+      </div>
+      <div class="toolbar" style="margin:10px 0 0"><button class="btn small wrap" id="cielAll">Nastaviť cieľový zisk ${fmt(num(S.ciel))} % všetkým vozidlám</button></div>
+      <p class="hint">Mena je zatiaľ len euro. DPH sa používa pri PDF faktúrach, keď na nich chýba suma bez DPH.</p>
+
+      <div class="section-title"><h3>Diéty (stravné vodiča)</h3><span>pri jazdách s vybranou krajinou</span></div>
+      <p class="note" style="margin:0 0 12px">Sadzby sú <b>orientačné</b>. Over ich podľa aktuálneho opatrenia MPSVR SR (tuzemsko) a MF SR (zahraničie) a prepíš. Tuzemsko: pásma 5–12 h, 12–18 h a nad 18 h. Zahraničie: do 6 h 25 %, do 12 h 50 %, nad 12 h 100 % dennej sadzby.</p>
+      <div class="setgrid">
+        <div><label class="lbl" for="s-b1">SK 5–12 h</label><input type="text" inputmode="decimal" class="n" id="s-b1" data-tuz="b1" value="${esc(S.tuz.b1)}"></div>
+        <div><label class="lbl" for="s-b2">SK 12–18 h</label><input type="text" inputmode="decimal" class="n" id="s-b2" data-tuz="b2" value="${esc(S.tuz.b2)}"></div>
+        <div><label class="lbl" for="s-b3">SK nad 18 h</label><input type="text" inputmode="decimal" class="n" id="s-b3" data-tuz="b3" value="${esc(S.tuz.b3)}"></div>
+      </div>
+      <div class="setgrid" style="margin-top:10px">
+        ${COUNTRIES.filter(c => c[2] != null).map(([c, n]) => `<div><label class="lbl" for="s-z-${c}">${n} €/deň</label><input type="text" inputmode="decimal" class="n" id="s-z-${c}" data-zahr="${c}" value="${esc(S.zahr[c])}"></div>`).join('')}
+      </div>
+      <div class="toolbar" style="margin:10px 0 0"><button class="btn small wrap" id="dietAll">Nastaviť všetkým vozidlám diéty ${eur(dayRate(S.krajina), 2)}/deň (${countryName(S.krajina)})</button></div>
+
+      <div class="section-title"><h3>Záloha dát</h3><span>${age == null ? 'zatiaľ žiadna záloha' : `posledná pred ${age} dňami`}</span></div>
+      <p class="hint" style="margin:0 0 10px">Všetko (vozidlá, jazdy, faktúry, nastavenia) je uložené len v tomto prehliadači. Zálohu si ulož napríklad raz týždenne. Zo zálohy prenesieš dáta aj na iný počítač.</p>
+      <div class="toolbar" style="margin:0">
+        <button class="btn primary" id="backupBtn">Stiahnuť zálohu</button>
+        <label class="btn" for="restoreFile" style="display:inline-flex;align-items:center">Obnoviť zo zálohy<input type="file" id="restoreFile" accept=".json,application/json" hidden></label>
+      </div>
+      <div id="restoreArea" style="margin-top:10px"></div>
+
+      <div class="section-title"><h3>Začať odznova</h3></div>
+      <p class="hint" style="margin:0 0 10px">Vymaže všetky vozidlá, jazdy, faktúry aj nastavenia a spustí sprievodcu nastavením. Najprv si stiahni zálohu.</p>
+      <span id="resetWrap"><button class="btn danger" id="resetAll">Vymazať všetky dáta</button></span>`;
+
+    p.querySelectorAll('[data-s]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+      const k = el.dataset.s; S[k] = el.value; save(); updateHeader();
+      if (k === 'krajina' || k === 'ciel') renderSettings();
+    }));
+    p.querySelectorAll('[data-tuz]').forEach(el => el.addEventListener('input', () => { S.tuz[el.dataset.tuz] = el.value; save(); }));
+    p.querySelectorAll('[data-zahr]').forEach(el => el.addEventListener('input', () => { S.zahr[el.dataset.zahr] = el.value; save(); }));
+    $('#cielAll').addEventListener('click', () => { state.vehicles.forEach(v => { v.zisk = String(num(S.ciel)); }); save(); toast('Cieľový zisk nastavený všetkým vozidlám'); });
+    $('#dietAll').addEventListener('click', () => { const r = dayRate(S.krajina); state.vehicles.forEach(v => { v.dieta = String(r); }); save(); toast(`Diéty ${eur(r, 2)}/deň nastavené všetkým vozidlám`); });
+    $('#backupBtn').addEventListener('click', downloadBackup);
+    $('#restoreFile').addEventListener('change', async (ev) => {
+      const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+      const area = $('#restoreArea');
+      let obj; try { obj = JSON.parse((await f.text()).replace(/^﻿/, '')); } catch (e) { obj = null; }
+      const data = obj && obj.app === 'drivee' ? normalize(obj.data) : null;
+      if (!data) { area.innerHTML = '<p class="note" style="margin:0;color:var(--bad)">Tento súbor nie je záloha Drivee alebo je poškodený.</p>'; return; }
+      area.innerHTML = `<p class="note" style="margin:0">Záloha z <b>${esc(fmtDate(String(obj.vytvorene || '').slice(0, 10)))}</b>: ${plural(data.vehicles.length, 'vozidlo', 'vozidlá', 'vozidiel')}, ${plural(data.offers.length, 'jazda', 'jazdy', 'jázd')}, ${plural(data.invoices.length, 'faktúra', 'faktúry', 'faktúr')}.<br>
+        <span class="confirm" style="margin-top:8px">Nahradiť ňou všetky súčasné dáta? <button class="btn small danger" id="rsYes">Áno, obnoviť</button><button class="btn small" id="rsNo">Nie</button></span></p>`;
+      $('#rsNo').addEventListener('click', () => { area.innerHTML = ''; });
+      $('#rsYes').addEventListener('click', () => { data.setupDone = true; state = data; save(); rerenderAll(); toast('Dáta obnovené zo zálohy'); });
+    });
+    $('#resetAll').addEventListener('click', () => {
+      $('#resetWrap').innerHTML = `<span class="confirm">Naozaj vymazať všetko? <button class="btn small danger" id="rzYes">Áno, vymazať</button><button class="btn small" id="rzNo">Nie</button></span>`;
+      $('#rzNo').addEventListener('click', renderSettings);
+      $('#rzYes').addEventListener('click', () => { state = defaultState(); save(); wiz = null; rerenderAll(); });
+    });
+  }
+
+  // ---------- Sprievodca nastavením ----------
+  const TYPES = [['tahac', 'Ťahač 40 t'], ['solo', 'Sólo 12 t'], ['dodavka', 'Dodávka 3,5 t']];
+  let wiz = null;
+  function newWiz() {
+    const t = (k, n) => ({ n, spz: '', leasing: PRESETS[k].leasing, kmMes: PRESETS[k].kmMes, spotreba: PRESETS[k].spotreba, poistenie: PRESETS[k].poistenie });
+    return { step: 1, firma: '', dph: 23, ciel: 12, krajina: 'DE', typy: { tahac: t('tahac', 1), solo: t('solo', 0), dodavka: t('dodavka', 0) },
+      nafta: PRESETS.tahac.nafta, mzda: PRESETS.tahac.mzda, rezia: PRESETS.tahac.rezia };
+  }
+  function applySetupMode() {
+    const on = !state.setupDone;
+    $('#wizard').hidden = !on;
+    document.querySelector('nav.tabs').hidden = on;
+    document.querySelector('footer').hidden = on;
+    ['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury', 'nastavenia'].forEach(t => { if (on) $('#view-' + t).hidden = true; });
+    if (on) { if (!wiz) wiz = newWiz(); renderWizard(); }
+    updateHeader(); updateBackupBanner();
+  }
+  function wizVehicles() {
+    const out = [];
+    const total = TYPES.reduce((a, [k]) => a + Math.max(0, Math.round(num(wiz.typy[k].n))), 0) || 1;
+    const rate = dayRate(wiz.krajina);
+    TYPES.forEach(([k, label]) => {
+      const T = wiz.typy[k], n = Math.max(0, Math.round(num(T.n)));
+      const plates = String(T.spz || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
+      for (let i = 0; i < n; i++) {
+        out.push(Object.assign({ id: uid() }, PRESETS[k], {
+          name: plates[i] ? `${label.split(' ')[0]} ${plates[i].toUpperCase()}` : `${label.split(' ')[0]} ${String(i + 1).padStart(2, '0')}`,
+          leasing: num(T.leasing), kmMes: num(T.kmMes), spotreba: num(T.spotreba), poistenie: num(T.poistenie),
+          nafta: num(wiz.nafta), mzda: num(wiz.mzda), rezia: Math.round(num(wiz.rezia) / total * 100) / 100,
+          dieta: rate || PRESETS[k].dieta, zisk: num(wiz.ciel),
+        }));
+      }
+    });
+    return out;
+  }
+  function renderWizard() {
+    const W = wiz, p = $('#wizPanel');
+    const steps = ['Firma', 'Vozidlá', 'Náklady a súhrn'];
+    const bar = `<div class="steps-bar">${steps.map((n, i) => `<span class="${i + 1 === W.step ? 'on' : i + 1 < W.step ? 'done' : ''}">${i + 1}. ${n}</span>`).join('')}</div>`;
+    const inp = (id, key, val, unit, extra = '') => `<div class="inwrap" style="display:flex"><input type="text" inputmode="decimal" class="n" id="${id}" data-w="${key}" value="${esc(val)}" ${extra} style="border-radius:var(--r) 0 0 var(--r)"><span class="unit" style="display:grid;place-items:center;padding:0 9px;border:1px solid var(--line);border-left:0;border-radius:0 var(--r) var(--r) 0;font-size:12px;color:var(--muted);min-width:62px">${unit}</span></div>`;
+    let body = '';
+    if (W.step === 1) {
+      body = `<h2>Vitaj v Drivee</h2>
+        <p class="lead">Tri krátke kroky a appka bude počítať s tvojimi číslami. Všetko sa dá neskôr zmeniť. Sumy zadávaj bez DPH.</p>
+        <div class="setgrid">
+          <div style="grid-column: span 2"><label class="lbl" for="w-firma">Názov firmy</label><input type="text" id="w-firma" data-w="firma" value="${esc(W.firma)}" placeholder="napr. Doprava Novák s.r.o."></div>
+          <div><label class="lbl" for="w-krajina">Kde jazdíš najčastejšie</label><select id="w-krajina" data-w="krajina">${COUNTRIES.map(([c, n]) => `<option value="${c}"${c === W.krajina ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
+          <div><label class="lbl" for="w-ciel">Cieľový zisk</label>${inp('w-ciel', 'ciel', W.ciel, '%')}</div>
+          <div><label class="lbl" for="w-dph">Sadzba DPH</label>${inp('w-dph', 'dph', W.dph, '%')}</div>
+        </div>
+        <p class="hint" style="margin:0">Podľa krajiny sa nastavia diéty vodiča. Cieľový zisk je prirážka k nákladom, z ktorej appka počíta odporúčanú cenu.</p>`;
+    } else if (W.step === 2) {
+      body = `<h2>Aké máš vozidlá?</h2>
+        <p class="lead">Zadaj počet áut každého typu a ich hlavné čísla. Ostatné (pneumatiky, servis, AdBlue) nastavím podľa typu a doladíš ich neskôr.</p>
+        <div class="typecards">${TYPES.map(([k, label]) => { const T = W.typy[k]; const on = num(T.n) > 0; return `
+          <div class="typecard${on ? ' on' : ''}">
+            <h4>${label}</h4>
+            <div><label class="lbl" for="w-${k}-n">Počet áut</label>${inp(`w-${k}-n`, `typy.${k}.n`, T.n, 'ks')}</div>
+            ${on ? `
+            <div><label class="lbl" for="w-${k}-leasing">Leasing / splátka na auto</label>${inp(`w-${k}-leasing`, `typy.${k}.leasing`, T.leasing, '€/mes')}</div>
+            <div><label class="lbl" for="w-${k}-poist">Poistenie na auto</label>${inp(`w-${k}-poist`, `typy.${k}.poistenie`, T.poistenie, '€/mes')}</div>
+            <div><label class="lbl" for="w-${k}-km">Najazdí za mesiac</label>${inp(`w-${k}-km`, `typy.${k}.kmMes`, T.kmMes, 'km')}</div>
+            <div><label class="lbl" for="w-${k}-sp">Spotreba</label>${inp(`w-${k}-sp`, `typy.${k}.spotreba`, T.spotreba, 'l/100 km')}</div>
+            <div><label class="lbl" for="w-${k}-spz">ŠPZ (nepovinné, oddeľ čiarkou)</label><input type="text" id="w-${k}-spz" data-w="typy.${k}.spz" value="${esc(T.spz)}" placeholder="napr. ZA123AB, ZA456CD"></div>` : ''}
+          </div>`; }).join('')}</div>
+        <p class="hint" style="margin:0">ŠPZ sa použije v názve auta. Faktúry s touto ŠPZ v popise sa potom priradia k autu samé.</p>`;
+    } else {
+      const vs = wizVehicles();
+      body = `<h2>Spoločné náklady</h2>
+        <p class="lead">Tieto sumy platia pre všetky autá. Réžiu rozdelím rovnomerne medzi všetky vozidlá.</p>
+        <div class="setgrid">
+          <div><label class="lbl" for="w-nafta">Cena nafty bez DPH</label>${inp('w-nafta', 'nafta', W.nafta, '€/l')}</div>
+          <div><label class="lbl" for="w-mzda">Vodič, celková cena práce</label>${inp('w-mzda', 'mzda', W.mzda, '€/mes')}</div>
+          <div><label class="lbl" for="w-rezia">Réžia firmy spolu</label>${inp('w-rezia', 'rezia', W.rezia, '€/mes')}</div>
+        </div>
+        <p class="hint" style="margin:0">Réžia = kancelária, účtovník, dispečing, telefóny. Mzda vodiča je hrubá mzda plus odvody zamestnávateľa.</p>
+        <div class="section-title"><h3>Vytvorím ${vs.length} ${vs.length === 1 ? 'vozidlo' : vs.length < 5 ? 'vozidlá' : 'vozidiel'}</h3><span>odhad nákladu</span></div>
+        <div class="preview" id="wizPreview">${vs.length ? vs.map(v => { const c = calc(v); return `<div class="row"><span>${esc(v.name)}</span><span class="num">${fmt(c.totalKm, 3)} €/km</span><span class="num" style="color:var(--muted)">${eur(c.fixDen + c.dieta)}/deň</span></div>`; }).join('') : '<p class="note">Vráť sa o krok späť a zadaj aspoň jedno vozidlo.</p>'}</div>`;
+    }
+    p.innerHTML = `${bar}${body}
+      <div class="wizfoot">
+        <button class="btn" id="wizSkip">Preskočiť a pozrieť si príklad</button>
+        <span style="display:flex;gap:8px">${W.step > 1 ? '<button class="btn" id="wizBack">Späť</button>' : ''}<button class="btn primary" id="wizNext">${W.step < 3 ? 'Ďalej' : 'Dokončiť'}</button></span>
+      </div>`;
+    const setPath = (path, val) => { const ks = path.split('.'); let o = W; ks.slice(0, -1).forEach(k => { o = o[k]; }); o[ks[ks.length - 1]] = val; };
+    p.querySelectorAll('[data-w]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+      setPath(el.dataset.w, el.value);
+      if (/\.n$/.test(el.dataset.w) && (num(el.value) > 0) !== el.closest('.typecard').classList.contains('on')) { renderWizard(); $('#' + el.id).focus(); }
+      if (W.step === 3) { const vs = wizVehicles(); $('#wizPreview').innerHTML = vs.map(v => { const c = calc(v); return `<div class="row"><span>${esc(v.name)}</span><span class="num">${fmt(c.totalKm, 3)} €/km</span><span class="num" style="color:var(--muted)">${eur(c.fixDen + c.dieta)}/deň</span></div>`; }).join(''); }
+    }));
+    $('#wizSkip').addEventListener('click', () => { state.setupDone = true; save(); wiz = null; applySetupMode(); setTab('vozidla'); });
+    const back = $('#wizBack'); if (back) back.addEventListener('click', () => { W.step--; renderWizard(); window.scrollTo({ top: 0 }); });
+    $('#wizNext').addEventListener('click', () => {
+      if (W.step === 2 && !TYPES.some(([k]) => num(W.typy[k].n) > 0)) { toast('Zadaj aspoň jedno vozidlo'); return; }
+      if (W.step < 3) { W.step++; renderWizard(); window.scrollTo({ top: 0 }); return; }
+      const vs = wizVehicles(); if (!vs.length) { toast('Zadaj aspoň jedno vozidlo'); return; }
+      state.settings.firma = W.firma.trim(); state.settings.dph = num(W.dph) || 23; state.settings.ciel = num(W.ciel); state.settings.krajina = W.krajina;
+      state.vehicles = vs; state.activeId = vs[0].id;
+      state.trip = blankTrip(vs[0].id); state.empty = blankEmpty(vs[0].id);
+      state.setupDone = true; save(); wiz = null;
+      applySetupMode(); setTab('vozidla');
+      toast(`Hotovo. Vytvoril som ${vs.length} ${vs.length === 1 ? 'vozidlo' : vs.length < 5 ? 'vozidlá' : 'vozidiel'}.`);
+    });
+  }
+
   // ---------- Štart ----------
   updateCount();
   updateInvCount();
-  setTab(['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury'].includes(state.tab) ? state.tab : 'vozidla');
+  setTab(['vozidla', 'jazda', 'ponuky', 'firmy', 'powerbi', 'faktury', 'nastavenia'].includes(state.tab) ? state.tab : 'vozidla');
+  applySetupMode();
 })();
 </script>
 </body>

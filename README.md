@@ -88,6 +88,14 @@ Samostatná appka pre dopravcov: vypočíta, koľko stojí **1 km jazdy konkrét
 
    Potom porovná **skutočné náklady s plánom** z nastavení vozidla po skupinách a mesiacoch a ukáže, kde míňaš viac, než si počítal. Zo súboru berie sumu **bez DPH** (stĺpec „Základ“ / „bez DPH“, ak existuje).
 
+7. **Nastavenia** – názov firmy, sadzba DPH, cieľový zisk pre nové autá, hlavná krajina jázd, **sadzby stravného** (tuzemsko podľa pásiem 5–12 h / 12–18 h / nad 18 h, zahraničie podľa krajín: do 6 h 25 %, do 12 h 50 %, nad 12 h 100 %), **záloha a obnova dát** (súbor .json) a vymazanie všetkých dát.
+
+**Prvé spustenie:** sprievodca v troch krokoch (firma → vozidlá podľa typu a počtu, s ŠPZ → spoločné náklady s odhadom €/km) vytvorí vozidlá s tvojimi číslami. Ukážkové dáta sa dajú pozrieť tlačidlom „Preskočiť a pozrieť si príklad“.
+
+**Diéty podľa krajiny:** pri ocenení jazdy, prázdnej jazde aj čakaní sa dá vybrať krajina a diéty sa vypočítajú podľa hodín a sadzieb z Nastavení. Sadzby sú orientačné, over ich podľa aktuálnych opatrení MPSVR SR a MF SR.
+
+**Záloha:** dáta sú len v prehliadači. Ak existujú jazdy alebo faktúry a záloha je staršia ako 14 dní, appka pripomenie stiahnutie zálohy.
+
 ### Power BI (`kilometrovnik/powerbi/`)
 
 Hotové dotazy Power Query (`dotazy-power-query.m`), miery DAX (`miery.dax`: tržby, zisk, marža, zisk na deň, pohľadávky, cash flow podľa splatnosti, náklady na státie, odhad hospodárskeho výsledku, poradie firiem), miery pre faktúry (skutočné náklady vs. plán, odchýlka, výsledok podľa faktúr), ukážkové dáta a návod krok za krokom v [`kilometrovnik/powerbi/NAVOD.md`](kilometrovnik/powerbi/NAVOD.md).
