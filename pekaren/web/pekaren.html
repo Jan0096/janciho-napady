@@ -164,6 +164,10 @@ button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight:
     <span>Zobrazujú sa <b>ukážkové údaje</b> vymyslenej pekárne (apríl – september 2026). Keď začnete zadávať vlastné údaje, ukážku zmažte.</span>
     <button class="btn" id="btnClearDemo">Zmazať ukážkové údaje</button>
   </div>
+  <div class="banner info" id="emptyBanner" hidden>
+    <span>Aplikácia je zatiaľ prázdna. Začnite zapisovať vlastné údaje, alebo si najprv vyskúšajte, ako vyzerá, so <b>vzorovými údajmi</b> vymyslenej pekárne za posledných 6 mesiacov.</span>
+    <button class="btn primary" data-vzor>Načítať vzorové údaje</button>
+  </div>
   <div class="banner warn" id="localBanner" hidden>
     <span>Údaje sa teraz neukladajú – po zatvorení stránky sa stratia. Aby sa ukladali, otvorte stránku na claude.ai prihlásený.</span>
   </div>
@@ -370,7 +374,7 @@ button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight:
   <!-- ===================== SKLAD ===================== -->
   <section class="tab" id="tab-sklad" hidden>
     <div class="panel">
-      <h2>Stav skladu</h2>
+      <div class="panel-head"><h2>Stav skladu</h2><button class="btn" data-vzor title="Doplní vymyslenú pekáreň za posledných 6 mesiacov">Načítať vzorové údaje</button></div>
       <div class="tw"><table id="skList"></table></div>
     </div>
     <div class="grid2">
@@ -1380,6 +1384,95 @@ $("btnExport").addEventListener("click", async () => {
   document.querySelectorAll("[data-goexport]").forEach((b) => (b.hidden = !downloads));
 })();
 
+// ------------------------------------------------------------- VZOROVÉ ÚDAJE
+// Vymyslená pekáreň za posledných 6 ukončených mesiacov; všetky záznamy majú ukazka: true.
+function vzoroveUdaje() {
+  let seed = 7;
+  const rnd = () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const uni = (a, b) => a + (b - a) * rnd();
+  const r2 = (x) => Math.round(x * 100) / 100, r1 = (x) => Math.round(x * 10) / 10;
+  const SUR = [["muka-t650", "Pšeničná múka T650", "kg", 300, 0.42, 0.010, 900], ["muka-razna", "Ražná múka", "kg", 80, 0.55, 0.005, 200],
+    ["drozdie", "Droždie", "kg", 10, 2.10, 0, 25], ["maslo", "Maslo", "kg", 20, 7.80, 0.025, 40], ["cukor", "Cukor", "kg", 40, 0.85, -0.005, 90],
+    ["sol", "Soľ", "kg", 15, 0.30, 0, 20], ["vajcia", "Vajcia", "ks", 300, 0.22, 0.015, 900], ["mlieko", "Mlieko", "l", 30, 0.95, 0, 80],
+    ["semienka", "Slnečnicové semienka", "kg", 10, 2.40, 0, 15]];
+  const DOD = [["mlyn", "Mlyn Pohronie s.r.o.", "36123456", ["muka-t650", "muka-razna"]], ["gastro", "Gastro Veľkoobchod a.s.", "35987654", ["drozdie", "cukor", "sol", "semienka"]],
+    ["farma", "Farma Zelená Lúka", "47111222", ["maslo", "vajcia", "mlieko"]]];
+  const out = []; const add = (c, id, d) => out.push([c, id, { ...d, ukazka: true }]);
+  const info = Object.fromEntries(SUR.map((s) => [s[0], s]));
+  for (const [id, nazov, jednotka, min] of SUR) add("suroviny", id, { nazov, jednotka, min_zasoba: min });
+  for (const [id, nazov, ico] of DOD) add("dodavatelia", id, { nazov, ico, kontakt: "" });
+  const [ty, tm] = ymd(today());
+  const posl = addMonths(iso(ty, tm, 1), -1), prvy = addMonths(posl, -5);
+  const mesiace = months(prvy, posl);
+  const t = today();
+  mesiace.forEach(([y, m], k) => {
+    for (const [did, , , sur] of DOD) {
+      let suma = 0; const prij = [];
+      for (let d = iso(y, m, 1); d <= eom(y, m); d = addDays(d, 7)) {
+        const pol = sur.map((sid) => { const [, , , , c0, rast, tyz] = info[sid]; const cena = Math.round(c0 * (1 + rast) ** k * 10000) / 10000; const mn = r1(tyz * uni(0.9, 1.1)); suma += mn * cena; return { surovina_id: sid, mnozstvo: mn, cena, dph: 20 }; });
+        prij.push([`p-${d}-${did}`, { datum: d, dodavatel_id: did, polozky: pol, poznamka: "" }]);
+      }
+      const posledny = k === mesiace.length - 1;
+      if (posledny && did === "farma") suma += 35.4; // ukážka nesúladu faktúry s príjemkami
+      const vyst = iso(y, m, 28), spl = addDays(vyst, 14), fid = `f-${y}-${pad(m)}-${did}`;
+      const neuhradena = posledny || (k === mesiace.length - 2 && did === "gastro");
+      add("faktury", fid, { cislo: `FA${pad(m)}${pad(DOD.findIndex((x) => x[0] === did) + 1)}/${y}`, dodavatel_id: did, datum_vystavenia: vyst, datum_splatnosti: spl,
+        suma_bez_dph: r2(suma), dph: r2(suma * 0.2), datum_uhrady: neuhradena ? null : mn(addDays(vyst, 12), t), ostatne: 0 });
+      for (const [pid, p] of prij) add("prijemky", pid, { ...p, faktura_id: fid });
+    }
+  });
+  for (const [sid, , , , , , tyz] of SUR) add("spotreba", "s-" + sid, { datum: eom(...ymd(posl).slice(0, 2)), surovina_id: sid, mnozstvo: r1(tyz * 25.5), poznamka: "spotreba za 6 mesiacov" });
+  for (let d = prvy; d <= eom(...ymd(posl).slice(0, 2)); d = addDays(d, 1)) {
+    const wd = new Date(d + "T12:00:00").getDay(); // 0 = nedeľa
+    if (wd === 0) continue;
+    const mm = ymd(d)[1], sez = mm === 7 || mm === 8 ? 0.92 : 1, vk = wd === 6 ? 1.3 : 1;
+    add("trzby", `t-${d}-predajna`, { datum: d, kanal: "predajňa", suma: r2(uni(780, 920) * sez * vk) });
+    if (wd === 1 || wd === 4) add("trzby", `t-${d}-velkoodber`, { datum: d, kanal: "veľkoodber", suma: r2(uni(380, 450)) });
+  }
+  const zac = `${ymd(prvy)[0]}-01-01`;
+  add("pravidelne", "najom", { nazov: "Nájom prevádzky", kategoria: "najom", typ: "fixny", mesacna_suma: 1800, platny_od: zac, platny_do: null });
+  add("pravidelne", "mzdy", { nazov: "Mzdy – 3 pekári + predavačka (vrátane odvodov)", kategoria: "mzdy", typ: "fixny", mesacna_suma: 9200, platny_od: zac, platny_do: null });
+  add("pravidelne", "uctovnictvo", { nazov: "Účtovníctvo", kategoria: "ostatne", typ: "fixny", mesacna_suma: 180, platny_od: zac, platny_do: null });
+  add("pravidelne", "poistenie", { nazov: "Poistenie prevádzky", kategoria: "ostatne", typ: "fixny", mesacna_suma: 65, platny_od: zac, platny_do: null });
+  const pec = addMonths(prvy, -13), miesic = addMonths(prvy, -2);
+  add("pravidelne", "leasing-pec", { nazov: "Leasing: Etážová pec", kategoria: "leasing", typ: "fixny", mesacna_suma: 690, platny_od: pec, platny_do: addDays(addMonths(pec, 48), -1) });
+  add("pravidelne", "leasing-miesic", { nazov: "Leasing: Špirálový miesič", kategoria: "leasing", typ: "fixny", mesacna_suma: 210, platny_od: miesic, platny_do: addDays(addMonths(miesic, 24), -1) });
+  mesiace.forEach(([y, m], k) => {
+    const kur = Math.max(0.5, 1 - 0.1 * k);
+    [["Elektrina", "energie", r2(1250 * uni(0.95, 1.05)), 15], ["Plyn", "energie", r2(620 * kur), 15], ["Voda", "energie", 95, 15],
+     ["Obaly a vrecká", "pohyblive", r2(uni(380, 450)), 20], ["Palivo – rozvoz", "pohyblive", r2(uni(220, 280)), 25]]
+      .forEach(([nazov, kat, suma, den], i) => add("naklady", `n-${y}-${pad(m)}-${i}`, { datum: iso(y, m, den), nazov, kategoria: kat, typ: "variabilny", suma }));
+  });
+  const [oy, om] = mesiace[2];
+  add("naklady", `n-${oy}-${pad(om)}-oprava`, { datum: iso(oy, om, 11), nazov: "Oprava chladiaceho boxu", kategoria: "udrzba", typ: "fixny", suma: 640 });
+  return out;
+}
+async function nacitajVzor(btn) {
+  if (readOnly) return toast("Nemáte oprávnenie meniť údaje.", true);
+  const rows = vzoroveUdaje();
+  btn.disabled = true; const label = btn.textContent;
+  if (!db) {
+    for (const [c, id, d] of rows) { const i = S[c].findIndex((x) => x.id === id); if (i >= 0) S[c][i] = { id, ...d }; else S[c].push({ id, ...d }); }
+  } else {
+    let done = 0;
+    for (const [c, id, d] of rows) {
+      for (let pokus = 0; ; pokus++) {
+        try { await db.collection(c).doc(id).set(d); break; }
+        catch (e) {
+          if ((e?.code === "resource_exhausted" || e?.code === "unavailable") && pokus < 5) { await new Promise((r) => setTimeout(r, 1000 * (pokus + 1))); continue; }
+          btn.disabled = false; btn.textContent = label; toast(dbErr(e), true); return;
+        }
+      }
+      if (++done % 15 === 0) btn.textContent = `Načítavam… ${Math.round((done / rows.length) * 100)} %`;
+    }
+  }
+  btn.disabled = false; btn.textContent = label;
+  perTouched = false; $("perOd").value = ""; setPer("6");
+  toast("Vzorové údaje sú načítané.");
+  showTab("prehlad");
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-vzor]"); if (b) nacitajVzor(b); });
+
 // ------------------------------------------------------------- vykreslenie
 let raf = 0;
 function render() {
@@ -1387,6 +1480,8 @@ function render() {
   raf = requestAnimationFrame(() => {
     const demo = COLLS.some((c) => S[c].some((x) => x.ukazka));
     $("demoBanner").hidden = !demo;
+    const ready = !db || COLLS.every((c) => loaded.has(c));
+    $("emptyBanner").hidden = !(ready && COLLS.every((c) => !S[c].length));
     if (tab === "prehlad") renderPrehlad();
     else if (tab === "prijem") renderPrijem();
     else if (tab === "faktury") renderFaktury();
