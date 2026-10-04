@@ -124,6 +124,19 @@ button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight:
 .hbar .track { height: 10px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
 .hbar .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; }
 .empty { padding: 20px; text-align: center; color: var(--fg-3); border: 1px dashed var(--line); border-radius: 8px; font-size: 0.9rem; }
+.scan-drop { display: grid; place-items: center; gap: 6px; text-align: center; padding: 22px 16px; border: 2px dashed var(--line); border-radius: var(--r); background: var(--surface-2); cursor: pointer; }
+.scan-drop:hover, .scan-drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.scan-drop b { font-family: var(--font-display); font-size: 1.05rem; }
+.scan-prev { display: flex; gap: 8px; overflow-x: auto; }
+.scan-prev img { height: 140px; width: auto; max-width: none; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.scan-status { font-size: 0.9rem; color: var(--fg-2); }
+.scan-status.err { color: var(--bad); }
+.review { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.review table input, .review table select { padding: 5px 7px; font-size: 0.85rem; }
+.review td { vertical-align: middle; }
+.review .src { font-size: 0.8rem; color: var(--fg-3); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; color: var(--fg); }
+.check input { width: auto; }
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; z-index: 20; max-width: calc(100% - 32px); }
 .toast.err { background: var(--bad); color: #fff; }
 @media (prefers-reduced-motion: no-preference) { .toast { animation: up .2s ease-out; } @keyframes up { from { transform: translate(-50%, 8px); opacity: 0; } } }
@@ -201,7 +214,7 @@ button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight:
   <!-- ===================== PRÍJEM ===================== -->
   <section class="tab" id="tab-prijem" hidden>
     <div class="panel">
-      <h2>Nová príjemka</h2>
+      <div class="panel-head"><h2>Nová príjemka</h2><button type="button" class="btn" data-goscan>📷 Mám faktúru – naskenovať</button></div>
       <form id="fPrijem">
         <div class="fields">
           <label>Dátum príjmu<input type="date" id="prDatum" required></label>
@@ -226,6 +239,25 @@ button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight:
 
   <!-- ===================== FAKTÚRY ===================== -->
   <section class="tab" id="tab-faktury" hidden>
+    <div class="panel" id="scanPanel">
+      <div class="panel-head"><h2>📷 Naskenovať faktúru</h2><span class="small muted">Claude prečíta údaje, vy ich skontrolujete a uložíte.</span></div>
+      <div id="scanUnavail" class="empty">Skenovanie funguje, keď je stránka otvorená na claude.ai a ste prihlásený. Faktúru zatiaľ zapíšte ručne formulárom nižšie.</div>
+      <div id="scanBox" hidden style="display:grid;gap:12px">
+        <label class="scan-drop" id="scanDrop" for="scanFile">
+          <b>Odfotiť alebo nahrať faktúru</b>
+          <span class="small muted">Fotka (JPG, PNG) alebo PDF · na mobile sa ponúkne aj fotoaparát · môžete sem súbor aj pretiahnuť</span>
+          <input type="file" id="scanFile" accept="image/*,application/pdf" hidden>
+        </label>
+        <div class="scan-prev" id="scanPrev"></div>
+        <div class="btns">
+          <button class="btn primary" id="btnScan" disabled>Prečítať faktúru</button>
+          <button class="btn" id="btnScanStop" hidden>Zastaviť</button>
+          <span class="scan-status" id="scanStatus"></span>
+        </div>
+        <p class="small muted" style="margin:0">Čítanie faktúry využíva váš účet Claude. Pri prvom použití sa stránka opýta na povolenie.</p>
+        <div class="review" id="scanReview" hidden></div>
+      </div>
+    </div>
     <div class="kpis" id="fKpis"></div>
     <div class="grid2">
       <div class="panel">
@@ -506,7 +538,9 @@ const sumPrijemky = (p) => (p.polozky || []).reduce((a, it) => a + it.mnozstvo *
 function stavFaktury(f, t) {
   const prij = S.prijemky.filter((p) => p.faktura_id === f.id);
   const sp = prij.reduce((a, p) => a + sumPrijemky(p), 0);
-  return { sumaPrij: sp, maPrij: prij.length > 0, nesulad: prij.length > 0 && Math.abs(sp - f.suma_bez_dph) > 0.01, poSpl: !f.datum_uhrady && f.datum_splatnosti < t };
+  // Položky mimo skladu (doprava, zálohy za obaly…) sa do porovnania s príjemkami nerátajú.
+  const rozdiel = f.suma_bez_dph - (f.ostatne || 0) - sp;
+  return { sumaPrij: sp, maPrij: prij.length > 0, rozdiel, nesulad: prij.length > 0 && Math.abs(rozdiel) > 0.01, poSpl: !f.datum_uhrady && f.datum_splatnosti < t };
 }
 function leasingy(t) {
   const r = [];
@@ -536,6 +570,8 @@ function showTab(t) {
   render();
 }
 $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) { showTab(b.dataset.tab); try { history.replaceState(null, "", "#" + b.dataset.tab); } catch {} } });
+
+document.addEventListener("click", (e) => { if (e.target.closest("[data-goscan]")) { showTab("faktury"); $("scanPanel").scrollIntoView({ behavior: "smooth" }); } });
 
 // Dvojklikové mazanie (prehliadač v tomto okne nezobrazuje potvrdzovacie dialógy).
 document.addEventListener("click", async (e) => {
@@ -650,7 +686,7 @@ function renderPrehlad() {
   const nes = S.faktury.filter((f) => stavFaktury(f, t).nesulad);
   $("zavazky").innerHTML = `<p style="margin:0">Neuhradené faktúry: <b>${neuhr.length}</b>, spolu <b>${eur(zav)}</b> s DPH${po.length ? `, z toho <span class="pill bad">${po.length} po splatnosti</span>` : ""}.</p>` +
     (neuhr.length ? `<div class="tw"><table><tr><th>Faktúra</th><th>Splatná</th><th class="n">S DPH</th></tr>${neuhr.map((f) => `<tr><td>${esc(f.cislo)}<div class="small muted">${esc(dm2[f.dodavatel_id]?.nazov || "")}</div></td><td>${dtSk(f.datum_splatnosti)} ${f.datum_splatnosti < t ? '<span class="pill bad">po splatnosti</span>' : ""}</td><td class="n">${eur(f.suma_bez_dph + (f.dph || 0))}</td></tr>`).join("")}</table></div>` : "") +
-    nes.map((f) => { const s = stavFaktury(f, t); return `<div class="alert warn"><b>! Nesúlad</b><span>Faktúra ${esc(f.cislo)} je na ${eur(f.suma_bez_dph)}, ale príjemky k nej sú na ${eur(s.sumaPrij)} (rozdiel ${eur(f.suma_bez_dph - s.sumaPrij)}).</span></div>`; }).join("");
+    nes.map((f) => { const s = stavFaktury(f, t); return `<div class="alert warn"><b>! Nesúlad</b><span>Faktúra ${esc(f.cislo)} je na ${eur(f.suma_bez_dph)}, ale príjemky k nej sú na ${eur(s.sumaPrij)} (rozdiel ${eur(s.rozdiel)}).</span></div>`; }).join("");
 
   const ls = leasingy(t);
   $("leasingy").innerHTML = ls.length ? `<div class="tw"><table><tr><th>Stroj</th><th class="n">Splátka</th><th class="n">Zostáva</th><th class="n">Spolu</th></tr>${ls.map((l) => `<tr><td>${esc(l.nazov.replace(/^Leasing: /, ""))}<div class="small muted">do ${dtSk(l.koniec)}</div></td><td class="n">${eur(l.splatka)}</td><td class="n">${l.zostava}×</td><td class="n">${eur(l.suma)}</td></tr>`).join("")}<tr class="sum"><td>Spolu</td><td></td><td></td><td class="n">${eur(ls.reduce((a, l) => a + l.suma, 0))}</td></tr></table></div>`
@@ -817,15 +853,15 @@ function renderFaktury() {
   $("fKpis").innerHTML = [
     ["Neuhradené (s DPH)", eur(neuhr.reduce((a, f) => a + f.suma_bez_dph + (f.dph || 0), 0)), `${neuhr.length} faktúr`],
     ["Po splatnosti", eur(po.reduce((a, f) => a + f.suma_bez_dph + (f.dph || 0), 0)), `${po.length} faktúr`, po.length ? "minus" : ""],
-    ["Nesúlad s príjemkami", String(nes.length), nes.length ? `rozdiel ${eur(nes.reduce((a, f) => a + f.suma_bez_dph - stavFaktury(f, t).sumaPrij, 0))}` : "všetko sedí"],
+    ["Nesúlad s príjemkami", String(nes.length), nes.length ? `rozdiel ${eur(nes.reduce((a, f) => a + stavFaktury(f, t).rozdiel, 0))}` : "všetko sedí"],
   ].map(([l, v, h, c]) => `<div class="kpi"><div class="lbl">${l}</div><div class="val ${c || ""}">${v}</div><div class="hint">${h}</div></div>`).join("");
   // Neuhradené navrch, potom od najnovšej.
   const l = S.faktury.slice().sort((a, b) => (!b.datum_uhrady) - (!a.datum_uhrady) || b.datum_vystavenia.localeCompare(a.datum_vystavenia));
   $("faList").innerHTML = l.length ? `<tr><th>Číslo</th><th>Dodávateľ</th><th>Vystavená</th><th>Splatná</th><th class="n">Bez DPH</th><th class="n">S DPH</th><th>Stav</th><th></th></tr>` +
     l.map((f) => { const s = stavFaktury(f, t);
       const stav = (f.datum_uhrady ? `<span class="pill good">uhradená ${dtSk(f.datum_uhrady)}</span>` : s.poSpl ? `<span class="pill bad">po splatnosti</span>` : `<span class="pill neutral">čaká na úhradu</span>`) +
-        (s.nesulad ? ` <span class="pill warn" title="Príjemky: ${eur(s.sumaPrij)}">nesúlad ${eur(f.suma_bez_dph - s.sumaPrij)}</span>` : "") + (!s.maPrij ? ` <span class="pill neutral">bez príjemok</span>` : "");
-      return `<tr><td>${esc(f.cislo)}</td><td>${esc(dm[f.dodavatel_id]?.nazov || "?")}</td><td>${dtSk(f.datum_vystavenia)}</td><td>${dtSk(f.datum_splatnosti)}</td><td class="n">${eur(f.suma_bez_dph)}</td><td class="n">${eur(f.suma_bez_dph + (f.dph || 0))}</td><td>${stav}</td><td class="act">${f.datum_uhrady ? `<button class="link" data-neuhrad="${esc(f.id)}">Zrušiť úhradu</button>` : `<button class="link ok" data-uhrad="${esc(f.id)}">Uhradená dnes</button>`}${delBtn("faktury", f.id)}</td></tr>`; }).join("")
+        (s.nesulad ? ` <span class="pill warn" title="Príjemky: ${eur(s.sumaPrij)}">nesúlad ${eur(s.rozdiel)}</span>` : "") + (!s.maPrij ? ` <span class="pill neutral">bez príjemok</span>` : "");
+      return `<tr><td>${esc(f.cislo)}${f.sken ? `<div><a class="small" href="/_blob/${esc(f.sken)}" target="_blank" rel="noopener">📄 sken</a></div>` : ""}</td><td>${esc(dm[f.dodavatel_id]?.nazov || "?")}</td><td>${dtSk(f.datum_vystavenia)}</td><td>${dtSk(f.datum_splatnosti)}</td><td class="n">${eur(f.suma_bez_dph)}</td><td class="n">${eur(f.suma_bez_dph + (f.dph || 0))}</td><td>${stav}</td><td class="act">${f.datum_uhrady ? `<button class="link" data-neuhrad="${esc(f.id)}">Zrušiť úhradu</button>` : `<button class="link ok" data-uhrad="${esc(f.id)}">Uhradená dnes</button>`}${delBtn("faktury", f.id)}</td></tr>`; }).join("")
     : emptyRow(8, "Zatiaľ žiadne faktúry.");
 }
 
@@ -932,6 +968,282 @@ function renderSklad() {
     S.dodavatelia.slice().sort((a, b) => a.nazov.localeCompare(b.nazov, "sk")).map((d) => `<tr><td>${esc(d.nazov)}</td><td>${esc(d.ico || "")}</td><td>${esc(d.kontakt || "")}</td><td class="n">${eur(S.prijemky.filter((p) => p.dodavatel_id === d.id).reduce((a, p) => a + sumPrijemky(p), 0))}</td><td class="act">${pd.has(d.id) ? "" : delBtn("dodavatelia", d.id)}</td></tr>`).join("")
     : emptyRow(5, "Zatiaľ žiadni dodávatelia.");
 }
+
+// ------------------------------------------------------------- SKENOVANIE FAKTÚR
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+const IMG_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+let sample = null, assets = null, scanLimits = null;
+let scanFile = null, scanImgs = [], scanCtl = null, scanData = null;
+
+function scanStatus(text, err) { const el = $("scanStatus"); el.textContent = text || ""; el.classList.toggle("err", !!err); }
+function loadScript(src) {
+  return new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("Nepodarilo sa načítať čítačku PDF. Skúste faktúru odfotiť.")); document.head.appendChild(el); });
+}
+const canvasBlob = (c) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Obrázok sa nepodarilo pripraviť."))), "image/jpeg", 0.88));
+async function pdfToImages(file, max) {
+  if (!window.pdfjsLib) {
+    // Pracovný skript pdf.js načítame ako bežný skript – PDF sa potom spracuje priamo na stránke.
+    await loadScript(PDFJS + "pdf.worker.min.js");
+    await loadScript(PDFJS + "pdf.min.js");
+  }
+  const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+  const out = [];
+  for (let i = 1; i <= Math.min(pdf.numPages, max); i++) {
+    const page = await pdf.getPage(i);
+    const vp0 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: Math.min(2.5, 1800 / Math.max(vp0.width, vp0.height)) });
+    const c = document.createElement("canvas"); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+    const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    out.push(await canvasBlob(c));
+  }
+  return out;
+}
+async function toJpeg(file) {
+  // Napr. HEIC z iPhonu – ak ho prehliadač vie zobraziť, prevedieme ho na JPG.
+  const bmp = await createImageBitmap(file).catch(() => { throw new Error("Tento formát fotky sa nedá otvoriť. Použite JPG alebo PNG."); });
+  const k = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return canvasBlob(c);
+}
+async function pickScan(file) {
+  if (!file) return;
+  scanCtl?.abort();
+  $("scanReview").hidden = true; $("scanReview").innerHTML = ""; scanData = null;
+  $("btnScan").disabled = true; $("scanPrev").innerHTML = "";
+  scanStatus("Pripravujem súbor…");
+  try {
+    const max = scanLimits?.maxCount || 5;
+    if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) scanImgs = await pdfToImages(file, Math.min(3, max));
+    else if (IMG_TYPES.includes(file.type)) scanImgs = [file];
+    else if (/^image\//.test(file.type) || /\.(heic|heif)$/i.test(file.name)) scanImgs = [await toJpeg(file)];
+    else throw new Error("Nahrajte fotku (JPG, PNG) alebo PDF.");
+    if (scanImgs.some((b) => b.size > (scanLimits?.maxInputBytes || 2e7))) scanImgs = await Promise.all(scanImgs.map((b) => (b.size > (scanLimits?.maxInputBytes || 2e7) ? toJpeg(b) : b)));
+  } catch (e) { scanFile = null; scanImgs = []; scanStatus(e.message || "Súbor sa nepodarilo otvoriť.", true); return; }
+  scanFile = file;
+  for (const b of scanImgs) { const img = document.createElement("img"); img.alt = "Náhľad faktúry"; img.src = URL.createObjectURL(b); $("scanPrev").appendChild(img); }
+  $("btnScan").disabled = false;
+  scanStatus(`${file.name}${scanImgs.length > 1 ? ` · ${scanImgs.length} strany` : ""} – kliknite na Prečítať faktúru.`);
+}
+$("scanFile").addEventListener("change", (e) => { pickScan(e.target.files[0]); e.target.value = ""; });
+const drop = $("scanDrop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); pickScan(e.dataTransfer.files[0]); });
+
+function scanPrompt() {
+  const dod = S.dodavatelia.map((d) => ({ id: d.id, nazov: d.nazov, ico: d.ico || "" }));
+  const sur = S.suroviny.map((x) => ({ id: x.id, nazov: x.nazov, jednotka: x.jednotka }));
+  return `The images show a supplier invoice (faktúra) received by a small Slovak bakery${scanImgs.length > 1 ? " (several pages of the same invoice)" : ""}. Read it and reply with only one JSON object of this shape:
+{"dodavatel_nazov": string, "dodavatel_ico": string|null, "dodavatel_id": string|null, "cislo": string|null, "datum_vystavenia": "YYYY-MM-DD"|null, "datum_splatnosti": "YYYY-MM-DD"|null, "datum_dodania": "YYYY-MM-DD"|null, "suma_bez_dph": number|null, "dph": number|null, "suma_s_dph": number|null, "polozky": [{"nazov": string, "typ": "surovina"|"ine", "surovina_id": string|null, "mnozstvo": number|null, "jednotka": string|null, "cena_bez_dph": number|null, "sadzba_dph": number|null}]}
+Rules:
+- dodavatel is the seller (dodávateľ), never the customer (odberateľ). If it matches one of the known suppliers by name or IČO, put that id in dodavatel_id, else null.
+- cislo is the invoice number (číslo faktúry); use the variable symbol only if there is no invoice number.
+- Amounts are EUR as plain JSON numbers. Slovak invoices write "1 234,56" – that is 1234.56.
+- polozky: one entry per invoice line. typ "surovina" for food ingredients and baking materials; "ine" for transport, deposits, returnable packaging, fees, services and discounts.
+- For each "surovina" line, if it is the same product as a known ingredient (names may differ, e.g. "Múka pšeničná hladká T650" = "Pšeničná múka T650"), set surovina_id. Then give mnozstvo in that ingredient's unit when you can convert (e.g. 20 bags × 25 kg = 500 kg) and cena_bez_dph per that unit without VAT. Otherwise keep the invoice's own unit.
+- cena_bez_dph is the unit price without VAT. If the invoice only shows prices with VAT, divide by (1 + VAT rate).
+- Use null for anything you cannot read. Never invent numbers.
+Known suppliers: ${JSON.stringify(dod)}
+Known ingredients: ${JSON.stringify(sur)}`;
+}
+const numOrNull = (v) => { const n = typeof v === "number" ? v : parseNum(v ?? ""); return isFinite(n) ? n : null; };
+const dateOrNull = (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+function scanErrText(e) {
+  switch (e && e.code) {
+    case "not_granted": case "sampling_disabled": case "not_declared": case "capability_disabled": case "capability_removed":
+      return "Čítanie faktúr nie je povolené. Povoľte ho v menu stránky (Povolenia) alebo faktúru zapíšte ručne.";
+    case "images_unavailable": return "V tomto zobrazení sa obrázky nedajú poslať. Otvorte stránku v prehliadači na claude.ai.";
+    case "image_rejected": return "Tento súbor sa nedá prečítať. Skúste ostrejšiu fotku vo formáte JPG.";
+    case "rate_limited": return "Príliš veľa požiadaviek alebo ste vyčerpali limit používania. Skúste to neskôr.";
+    case "session_expired": return "Prihlásenie vypršalo. Obnovte stránku a prihláste sa znova.";
+    case "invalid_json": case "empty_completion": return "Faktúru sa nepodarilo prečítať. Skúste ostrejšiu fotku celej faktúry.";
+    case "refused": return "Tento obrázok sa nedá spracovať. Skúste inú fotku faktúry.";
+    default: return "Čítanie sa prerušilo. Skúste to znova.";
+  }
+}
+$("btnScanStop").addEventListener("click", () => scanCtl?.abort());
+$("btnScan").addEventListener("click", async () => {
+  if (!sample || !scanImgs.length) return;
+  scanCtl = new AbortController();
+  $("btnScan").disabled = true; $("btnScanStop").hidden = false;
+  scanStatus("Čítam faktúru… zvyčajne to trvá 20 – 60 sekúnd.");
+  try {
+    const r = await sample.json(scanPrompt(), { images: scanImgs, signal: scanCtl.signal });
+    if (!r || typeof r !== "object" || Array.isArray(r)) throw { code: "invalid_json" };
+    scanData = {
+      dodavatel_nazov: String(r.dodavatel_nazov || "").trim(), dodavatel_ico: String(r.dodavatel_ico || "").trim(),
+      dodavatel_id: S.dodavatelia.some((d) => d.id === r.dodavatel_id) ? r.dodavatel_id : null,
+      cislo: String(r.cislo || "").trim(),
+      datum_vystavenia: dateOrNull(r.datum_vystavenia), datum_splatnosti: dateOrNull(r.datum_splatnosti), datum_dodania: dateOrNull(r.datum_dodania),
+      suma_bez_dph: numOrNull(r.suma_bez_dph), dph: numOrNull(r.dph), suma_s_dph: numOrNull(r.suma_s_dph),
+      polozky: (Array.isArray(r.polozky) ? r.polozky : []).map((p) => ({
+        nazov: String(p?.nazov || "").trim() || "položka", typ: p?.typ === "ine" ? "ine" : "surovina",
+        surovina_id: S.suroviny.some((x) => x.id === p?.surovina_id) ? p.surovina_id : null,
+        mnozstvo: numOrNull(p?.mnozstvo), jednotka: String(p?.jednotka || "").trim(), cena: numOrNull(p?.cena_bez_dph), dph: numOrNull(p?.sadzba_dph),
+      })),
+    };
+    if (scanData.dodavatel_id == null && scanData.dodavatel_ico) scanData.dodavatel_id = S.dodavatelia.find((d) => d.ico && d.ico.replace(/\s/g, "") === scanData.dodavatel_ico.replace(/\s/g, ""))?.id || null;
+    if (scanData.suma_bez_dph == null && scanData.suma_s_dph != null && scanData.dph != null) scanData.suma_bez_dph = Math.round((scanData.suma_s_dph - scanData.dph) * 100) / 100;
+    renderReview();
+    scanStatus("Hotovo. Skontrolujte údaje nižšie a uložte.");
+  } catch (e) {
+    if (e && e.code === "cancelled") scanStatus("Čítanie zastavené.");
+    else { console.error(e); scanStatus(scanErrText(e), true); if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(e && e.code)) { $("scanBox").hidden = true; $("scanUnavail").hidden = false; $("scanUnavail").textContent = scanErrText(e); } }
+  } finally { $("btnScan").disabled = !scanImgs.length; $("btnScanStop").hidden = true; }
+});
+
+const fixed = (n, d = 2) => (n == null ? "" : String(Math.round(n * 10 ** d) / 10 ** d).replace(".", ","));
+function renderReview() {
+  const d = scanData, el = $("scanReview");
+  const dodOptions = [...dodOpts(), ["__new", "+ nový dodávateľ" + (d.dodavatel_nazov ? `: ${d.dodavatel_nazov}` : "")]];
+  const sopts = (p) => [...surOpts(), ["__new", "+ nová surovina: " + p.nazov]];
+  const t = today();
+  el.innerHTML = `<h3>Skontrolujte prečítané údaje</h3>
+    <div class="fields">
+      <label>Dodávateľ<select id="rvDod"></select></label>
+      <label id="rvNovyL">Názov nového dodávateľa<input id="rvNovy"></label>
+      <label id="rvIcoL">IČO<input id="rvIco"></label>
+      <label>Číslo faktúry<input id="rvCislo" required></label>
+      <label>Dátum vystavenia<input type="date" id="rvVyst"></label>
+      <label>Dátum splatnosti<input type="date" id="rvSpl"></label>
+      <label>Suma bez DPH (€)<input id="rvSuma" inputmode="decimal"></label>
+      <label>DPH (€)<input id="rvDph" inputmode="decimal"></label>
+    </div>
+    <div class="tw"><table id="rvItems"><tr><th>Na sklad</th><th>Položka na faktúre / surovina</th><th class="n">Množstvo</th><th class="n">Cena/jedn. bez DPH</th><th class="n">DPH %</th><th class="n">Spolu</th></tr>
+    ${d.polozky.map((p, i) => `<tr data-i="${i}"><td><input type="checkbox" class="rvOn" ${p.typ === "surovina" ? "checked" : ""} aria-label="Zapísať na sklad"></td>
+      <td style="min-width:220px"><div class="src">${esc(p.nazov)}</div><select class="rvSur"></select></td>
+      <td class="n" style="min-width:120px"><span style="display:flex;gap:4px"><input class="rvMn" inputmode="decimal" value="${fixed(p.mnozstvo, 3)}"><input class="rvJed" style="max-width:56px" value="${esc(p.jednotka)}" aria-label="Jednotka"></span></td>
+      <td class="n" style="min-width:100px"><input class="rvCena" inputmode="decimal" value="${fixed(p.cena, 4)}"></td>
+      <td class="n" style="min-width:70px"><input class="rvDphS" inputmode="decimal" value="${p.dph == null ? 20 : fixed(p.dph, 0)}"></td>
+      <td class="n rvSum"></td></tr>`).join("")}
+    </table></div>
+    ${d.polozky.length ? "" : `<div class="empty">Na faktúre sa nenašli žiadne položky. Faktúru môžete uložiť aj bez nich.</div>`}
+    <div id="rvCheck"></div>
+    <div class="fields">
+      <label class="check"><input type="checkbox" id="rvPrijem" checked> Zároveň zapísať príjem surovín na sklad</label>
+      <label>Dátum príjmu<input type="date" id="rvDatumPr"></label>
+    </div>
+    <div class="btns"><button class="btn primary" id="rvSave">Uložiť faktúru</button><button class="btn" id="rvCancel">Zrušiť</button></div>`;
+  fillSelect($("rvDod"), dodOptions, "Vyberte dodávateľa");
+  $("rvDod").value = d.dodavatel_id || (d.dodavatel_nazov ? "__new" : "");
+  $("rvNovy").value = d.dodavatel_nazov; $("rvIco").value = d.dodavatel_ico;
+  $("rvCislo").value = d.cislo;
+  $("rvVyst").value = d.datum_vystavenia || t;
+  $("rvSpl").value = d.datum_splatnosti || addDays($("rvVyst").value, 14);
+  $("rvSuma").value = fixed(d.suma_bez_dph); $("rvDph").value = fixed(d.dph);
+  $("rvDatumPr").value = d.datum_dodania || d.datum_vystavenia || t;
+  el.querySelectorAll("#rvItems tr[data-i]").forEach((tr) => {
+    const p = d.polozky[+tr.dataset.i]; const sel = tr.querySelector(".rvSur");
+    fillSelect(sel, sopts(p), "Vyberte surovinu");
+    sel.value = p.surovina_id || "__new";
+    const jed = tr.querySelector(".rvJed");
+    if (p.surovina_id) jed.value = S.suroviny.find((x) => x.id === p.surovina_id)?.jednotka || jed.value;
+    sel.addEventListener("change", () => { const x = S.suroviny.find((y) => y.id === sel.value); jed.disabled = !!x; if (x) jed.value = x.jednotka; });
+    jed.disabled = !!p.surovina_id;
+  });
+  const syncDod = () => { const n = $("rvDod").value === "__new"; $("rvNovyL").hidden = !n; $("rvIcoL").hidden = !n; };
+  $("rvDod").addEventListener("change", syncDod); syncDod();
+  el.oninput = reviewCheck; el.onchange = reviewCheck;
+  $("rvSave").addEventListener("click", saveScan);
+  $("rvCancel").addEventListener("click", () => { el.hidden = true; el.innerHTML = ""; scanData = null; scanStatus(""); });
+  el.hidden = false;
+  reviewCheck();
+}
+function reviewRows() {
+  return [...document.querySelectorAll("#rvItems tr[data-i]")].map((tr) => ({
+    tr, p: scanData.polozky[+tr.dataset.i], on: tr.querySelector(".rvOn").checked, sur: tr.querySelector(".rvSur").value,
+    mn: parseNum(tr.querySelector(".rvMn").value), cena: parseNum(tr.querySelector(".rvCena").value),
+    dph: parseNum(tr.querySelector(".rvDphS").value), jed: tr.querySelector(".rvJed").value.trim() || "ks",
+  }));
+}
+function reviewCheck() {
+  const rows = reviewRows(); let sklad = 0, ine = 0;
+  for (const r of rows) {
+    const s = isFinite(r.mn) && isFinite(r.cena) ? r.mn * r.cena : NaN;
+    r.tr.querySelector(".rvSum").textContent = isFinite(s) ? eur(s) : "–";
+    r.tr.style.opacity = r.on ? "1" : "0.6";
+    r.tr.querySelector(".rvSur").disabled = !r.on;
+    if (isFinite(s)) { if (r.on) sklad += s; else ine += s; }
+  }
+  const suma = parseNum($("rvSuma").value);
+  const msgs = [];
+  if (isFinite(suma) && rows.length) {
+    const diff = suma - sklad - ine;
+    msgs.push(Math.abs(diff) <= 0.05
+      ? `<div class="alert" style="background:var(--good-soft)"><b class="plus">✓ Sedí</b><span>Súčet položiek ${eur(sklad + ine)} zodpovedá sume faktúry.</span></div>`
+      : `<div class="alert warn"><b>! Skontrolujte</b><span>Súčet položiek je ${eur(sklad + ine)}, faktúra je na ${eur(suma)} (rozdiel ${eur(diff)}). Opravte množstvo alebo cenu, ktorá sa prečítala zle.</span></div>`);
+  }
+  if (ine > 0) msgs.push(`<div class="small muted">Položky mimo skladu (${eur(ine)}) sa nezapíšu na sklad a pri kontrole faktúry sa s nimi počíta.</div>`);
+  const dph = parseNum($("rvDph").value);
+  if (scanData.suma_s_dph != null && isFinite(suma) && isFinite(dph) && Math.abs(suma + dph - scanData.suma_s_dph) > 0.05) msgs.push(`<div class="alert warn"><b>! DPH</b><span>Suma bez DPH + DPH (${eur(suma + dph)}) nesedí so sumou na úhradu ${eur(scanData.suma_s_dph)}.</span></div>`);
+  $("rvCheck").innerHTML = msgs.join("");
+}
+async function saveScan() {
+  if (readOnly) return toast("Nemáte oprávnenie meniť údaje.", true);
+  const cislo = $("rvCislo").value.trim(), vyst = $("rvVyst").value, spl = $("rvSpl").value;
+  const suma = parseNum($("rvSuma").value); let dph = parseNum($("rvDph").value);
+  let dod = $("rvDod").value;
+  if (!dod) return toast("Vyberte dodávateľa.", true);
+  if (dod === "__new" && !$("rvNovy").value.trim()) return toast("Zadajte názov nového dodávateľa.", true);
+  if (!cislo) return toast("Zadajte číslo faktúry.", true);
+  if (!vyst || !spl) return toast("Doplňte dátum vystavenia a splatnosti.", true);
+  if (spl < vyst) return toast("Splatnosť nemôže byť pred dátumom vystavenia.", true);
+  if (!(suma >= 0)) return toast("Doplňte sumu faktúry bez DPH.", true);
+  if (!isFinite(dph)) dph = Math.round(suma * 20) / 100;
+  if (dod !== "__new" && S.faktury.some((f) => f.dodavatel_id === dod && f.cislo === cislo)) return toast(`Faktúra ${cislo} od tohto dodávateľa už je zapísaná.`, true);
+  const rows = reviewRows();
+  const naSklad = rows.filter((r) => r.on);
+  for (const r of naSklad) {
+    if (!(r.mn > 0)) return toast(`Pri položke „${r.p.nazov}“ chýba množstvo.`, true);
+    if (!(r.cena >= 0)) return toast(`Pri položke „${r.p.nazov}“ chýba cena.`, true);
+  }
+  const ostatne = rows.filter((r) => !r.on && isFinite(r.mn) && isFinite(r.cena)).reduce((a, r) => a + r.mn * r.cena, 0);
+  const zapisPrijem = $("rvPrijem").checked && naSklad.length > 0;
+  $("rvSave").disabled = true; scanStatus("Ukladám…");
+  const ok = await guarded(async () => {
+    if (dod === "__new") {
+      const n = $("rvNovy").value.trim();
+      const exist = S.dodavatelia.find((d) => d.nazov.toLowerCase() === n.toLowerCase());
+      if (exist) dod = exist.id;
+      else { dod = newId("d"); await save("dodavatelia", dod, { nazov: n, ico: $("rvIco").value.trim(), kontakt: "" }); }
+    }
+    let sken = null;
+    if (assets && scanFile) {
+      try {
+        const blob = IMG_TYPES.includes(scanFile.type) || scanFile.type === "application/pdf" ? scanFile : scanImgs[0];
+        sken = (await assets.upload(blob, blob.type ? undefined : { type: "image/jpeg" })).id;
+      } catch (e) { console.error(e); toast("Sken sa nepodarilo uložiť, faktúra sa uloží bez neho.", true); }
+    }
+    const pol = [];
+    for (const r of naSklad) {
+      let sid = r.sur;
+      if (!sid || sid === "__new") {
+        const exist = S.suroviny.find((x) => x.nazov.toLowerCase() === r.p.nazov.toLowerCase());
+        if (exist) sid = exist.id;
+        else { sid = newId("s"); await save("suroviny", sid, { nazov: r.p.nazov, jednotka: r.jed, min_zasoba: 0 }); }
+      }
+      pol.push({ surovina_id: sid, mnozstvo: r.mn, cena: r.cena, dph: isFinite(r.dph) ? r.dph : 20 });
+    }
+    const fid = newId("f");
+    await save("faktury", fid, { cislo, dodavatel_id: dod, datum_vystavenia: vyst, datum_splatnosti: spl, suma_bez_dph: suma, dph, datum_uhrady: null,
+      ostatne: Math.round(ostatne * 100) / 100, sken, zdroj: "sken" });
+    if (zapisPrijem) await save("prijemky", newId("p"), { datum: $("rvDatumPr").value || vyst, dodavatel_id: dod, faktura_id: fid, poznamka: "zo skenu faktúry " + cislo, polozky: pol });
+  }, zapisPrijem ? "Faktúra aj príjem surovín sú uložené." : "Faktúra je uložená.");
+  if (ok) {
+    $("scanReview").hidden = true; $("scanReview").innerHTML = ""; $("scanPrev").innerHTML = "";
+    scanData = null; scanFile = null; scanImgs = []; $("btnScan").disabled = true; scanStatus("");
+  } else { $("rvSave").disabled = false; scanStatus(""); }
+}
+async function initScan() {
+  try { sample = window.claude ? await window.claude.use("sample") : null; } catch { sample = null; }
+  scanLimits = sample ? (await sample.limits().catch(() => null))?.images || null : null;
+  if (!sample || !scanLimits) return;
+  try { assets = window.claude ? await window.claude.use("assets") : null; } catch { assets = null; }
+  $("scanUnavail").hidden = true; $("scanBox").hidden = false;
+}
+initScan();
 
 // ------------------------------------------------------------- vykreslenie
 let raf = 0;
