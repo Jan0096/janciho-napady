@@ -92,6 +92,8 @@ sumy na **Mena €**.
 - Karty: `Km naprázdno %`, `Prázdne jazdy – km`, `Náklady na prázdne km (odhad)`.
 - Stĺpcový graf: os `Jazdy[dovod]` (filter `Jazdy[typ]` = *prazdna*), hodnota `Prázdne jazdy – náklady`.
 - Čiarový graf: os `Kalendar[Mesiac]`, hodnota `Km naprázdno %`.
+- Čakanie: karty `Čakanie – hodiny`, `Čakanie – náklady`, `Zdržné vyúčtované`, `Čakanie – nepokryté náklady`;
+  pruhový graf os `Firmy[firma]`, hodnota `Čakanie – hodiny` (u ktorých zákazníkov sa najviac čaká).
 
 ## 6. Aktualizácia
 
@@ -110,5 +112,5 @@ priečinka (prepísať) → v Power BI **Domov → Obnoviť**.
 - **Faktúry** sa v appke zaraďujú samé: najprv podľa zapamätaného dodávateľa, potom podľa slov
   v dodávateľovi a popise (nafta, mýto, servis, leasing…). K autu sa priradia podľa ŠPZ v popise.
   **Plán nákladov** pochádza z nastavení vozidla v appke (mesačne), mýto nemá plán, lebo závisí od trás.
-- **Prázdne jazdy** (stĺpec `typ` = `prazdna`) nemajú tržbu, len náklady. Ak sú priradené firme, znížia jej zisk.
+- **Prázdne jazdy** (stĺpec `typ` = `prazdna`) nemajú tržbu, len náklady. **Čakanie** (`typ` = `cakanie`) má náklady za hodiny státia (fixné náklady auta a diéty) a ako tržbu prípadné zdržné. Ak sú priradené firme, ovplyvnia jej zisk.
 - Všetky sumy sú **bez DPH**.

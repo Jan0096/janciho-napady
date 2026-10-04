@@ -41,7 +41,7 @@ Km naprázdno % = DIVIDE ( SUM ( Jazdy[km_prazdne] ), [Km spolu] )
 
 // Prázdne jazdy = samostatné presuny bez nákladu (typ = "prazdna").
 // Km naprázdno % už zahŕňa aj ich km.
-Počet jázd s nákladom = CALCULATE ( COUNTROWS ( Jazdy ), Jazdy[typ] <> "prazdna" )
+Počet jázd s nákladom = CALCULATE ( COUNTROWS ( Jazdy ), Jazdy[typ] = "naklad" )
 
 Prázdne jazdy – počet = CALCULATE ( COUNTROWS ( Jazdy ), Jazdy[typ] = "prazdna" )
 
@@ -49,10 +49,19 @@ Prázdne jazdy – km = CALCULATE ( SUM ( Jazdy[km_prazdne] ), Jazdy[typ] = "pra
 
 Prázdne jazdy – náklady = CALCULATE ( [Náklady], Jazdy[typ] = "prazdna" )
 
+// Čakanie na nakládku / vykládku (typ = "cakanie"): náklady za čas, keď auto stojí.
+Čakanie – hodiny = CALCULATE ( SUM ( Jazdy[hodiny_cakania] ), Jazdy[typ] = "cakanie" )
+
+Čakanie – náklady = CALCULATE ( [Náklady], Jazdy[typ] = "cakanie" )
+
+Zdržné vyúčtované = CALCULATE ( [Tržby], Jazdy[typ] = "cakanie" )
+
+Čakanie – nepokryté náklady = MAX ( 0, [Čakanie – náklady] - [Zdržné vyúčtované] )
+
 Náklady na prázdne km (odhad) =
 [Prázdne jazdy – náklady]
     + SUMX (
-        FILTER ( Jazdy, Jazdy[typ] <> "prazdna" && Jazdy[km_spolu] > 0 ),
+        FILTER ( Jazdy, Jazdy[typ] = "naklad" && Jazdy[km_spolu] > 0 ),
         Jazdy[variabilne_naklady] * DIVIDE ( Jazdy[km_prazdne], Jazdy[km_spolu] )
     )
 

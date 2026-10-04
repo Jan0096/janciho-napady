@@ -35,16 +35,18 @@ let
             {"ine_naklady", Currency.Type}, {"zisk", Currency.Type},
             {"marza_pct", type number}, {"zisk_den", Currency.Type},
             {"splatnost_dni", type number}, {"datum_splatnosti", type date},
-            {"typ", type text}, {"dovod", type text}
+            {"typ", type text}, {"dovod", type text}, {"hodiny_cakania", type number}
         },
         "en-US"   // CSV používa desatinnú bodku a dátumy RRRR-MM-DD
     ),
     // Čitateľný stav pre slicery a legendy
     StavText = Table.AddColumn(Typy, "Stav jazdy",
         each if [typ] = "prazdna" then "Prázdna jazda"
+             else if [typ] = "cakanie" then "Čakanie"
              else if [stav] = "zrealizovana" then "Zrealizovaná" else "Len ponuka", type text),
     Uhrada = Table.AddColumn(StavText, "Úhrada",
         each if [typ] = "prazdna" then "Bez faktúry (prázdna jazda)"
+             else if [typ] = "cakanie" and [trzba] = 0 then "Bez faktúry (čakanie)"
              else if [stav] <> "zrealizovana" then "Nefakturované"
              else if [zaplatena] = 1 then "Zaplatená"
              else if [datum_splatnosti] <> null and [datum_splatnosti] < Date.From(DateTime.LocalNow()) then "Po splatnosti"
