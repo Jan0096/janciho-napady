@@ -18,6 +18,9 @@ alebo PDF), Claude z nej prečíta dodávateľa, číslo, dátumy, sumy a polož
 Údaje skontrolujete, prípadne opravíte, a jedným klikom uložíte faktúru aj príjem surovín na sklad.
 Sken faktúry sa uloží k faktúre. Čítanie využíva účet Claude prihláseného používateľa.
 
+Tlačidlom **⬇ Export do Excelu** stiahnete súbor `.xlsx` za obdobie zvolené v Prehľade s hárkami
+Súhrn (výkaz ziskov a strát, ukazovatele), Po mesiacoch, Faktúry, Príjem surovín, Tržby, Náklady a Sklad.
+
 ## Spustenie verzie v Pythone
 
 V priečinku `pekaren` spusti:

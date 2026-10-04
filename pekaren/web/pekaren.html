@@ -146,7 +146,7 @@ button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight:
   <div class="wrap" style="padding-block: 0;">
     <div class="topbar">
       <h1>🥖 Pekáreň – financie</h1>
-      <span class="sub" id="syncState">Načítavam údaje…</span>
+      <div class="btns"><span class="sub" id="syncState">Načítavam údaje…</span><button class="btn" id="btnExport" hidden title="Stiahnuť údaje za obdobie zvolené v Prehľade">⬇ Export do Excelu</button></div>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
       <button role="tab" data-tab="prehlad">Prehľad a analýza</button>
@@ -176,6 +176,7 @@ button.link.armed { color: var(--bad); background: var(--bad-soft); font-weight:
         <label>Od mesiaca<input type="month" id="perOd"></label>
         <label>Do mesiaca<input type="month" id="perDo"></label>
         <div class="btns">
+          <button class="btn" data-goexport hidden>⬇ Excel za toto obdobie</button>
           <button class="btn" data-per="6">Posledných 6 mes.</button>
           <button class="btn" data-per="rok">Tento rok</button>
           <button class="btn" data-per="1">Posledný mesiac</button>
@@ -571,6 +572,7 @@ function showTab(t) {
 }
 $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) { showTab(b.dataset.tab); try { history.replaceState(null, "", "#" + b.dataset.tab); } catch {} } });
 
+document.addEventListener("click", (e) => { if (e.target.closest("[data-goexport]")) $("btnExport").click(); });
 document.addEventListener("click", (e) => { if (e.target.closest("[data-goscan]")) { showTab("faktury"); $("scanPanel").scrollIntoView({ behavior: "smooth" }); } });
 
 // Dvojklikové mazanie (prehliadač v tomto okne nezobrazuje potvrdzovacie dialógy).
@@ -1244,6 +1246,139 @@ async function initScan() {
   $("scanUnavail").hidden = true; $("scanBox").hidden = false;
 }
 initScan();
+
+// ------------------------------------------------------------- EXPORT DO EXCELU
+const XLSX_SRC = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+let downloads = null;
+const F_EUR = '#,##0.00 "€"', F_PCT = "0.0%", F_DAT = "d.m.yyyy", F_NUM = "#,##0.###", F_PRICE = '#,##0.0000 "€"';
+// Dátum ako excelovské poradové číslo (formát d.m.yyyy sa nastaví bunke).
+const xDate = (s) => { if (!s) return null; const [y, m, d] = ymd(s); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 864e5; };
+const round2 = (x) => (x == null || !isFinite(x) ? null : Math.round(x * 100) / 100);
+function obdobie() {
+  if (!$("perOd").value || !$("perDo").value) setPer("6");
+  const od = $("perOd").value + "-01"; let dm = $("perDo").value;
+  if (dm < $("perOd").value) dm = $("perOd").value;
+  const [y, m] = ymd(dm + "-01");
+  return { od, dok: eom(y, m) };
+}
+// Koľko z pravidelného nákladu pripadne na obdobie (rovnaký výpočet ako v analýze).
+function pravidelnyZaObdobie(n, od, dok) {
+  let s = 0;
+  for (const [y, m] of months(od, dok)) {
+    const zm = iso(y, m, 1), km = eom(y, m);
+    const zac = mx(mx(zm, od), n.platny_od); let kon = mn(km, dok);
+    if (n.platny_do) kon = mn(kon, n.platny_do);
+    if (kon < zac) continue;
+    s += n.mesacna_suma * (zac === zm && kon === km ? 1 : dni(zac, kon) / dim(y, m));
+  }
+  return s;
+}
+function sheet(rows, formats, widths, headerRow = 0) {
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  for (let r = headerRow + 1; r <= range.e.r; r++) for (let c = 0; c < formats.length; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r, c })];
+    if (cell && formats[c] && cell.t === "n") cell.z = formats[c];
+  }
+  ws["!cols"] = widths.map((w) => ({ wch: w }));
+  if (range.e.r > headerRow) ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: headerRow, c: 0 }, e: { r: range.e.r, c: range.e.c } }) };
+  return ws;
+}
+function buildWorkbook() {
+  const { od, dok } = obdobie();
+  const inP = (d) => d >= od && d <= dok;
+  const v = analyzuj(od, dok), t = today();
+  const dm = dodMap(), sm = surMap(), fm = Object.fromEntries(S.faktury.map((f) => [f.id, f]));
+  const wb = XLSX.utils.book_new();
+  const obd = `${dtSk(od)} – ${dtSk(dok)}`.replace(/ /g, " ");
+
+  // 1. Súhrn
+  const sum = [["Finančná analýza prevádzky"], ["Obdobie", obd], ["Vytvorené", xDate(t)], [], ["Výkaz ziskov a strát", "Suma", "% z tržieb"]];
+  for (const [p, s] of vzsRows(v)) sum.push([p.startsWith("z toho") ? "   " + p : p, round2(s), v.trzby ? Math.abs(s) / v.trzby : null]);
+  sum.push([], ["Ukazovatele", "Hodnota"]);
+  const uk = [
+    ["Fixné náklady", round2(v.fixne), F_EUR], ["Variabilné náklady (vrátane surovín)", round2(v.variab), F_EUR],
+    ["Podiel surovín na tržbách (food cost)", v.podiel(v.suroviny), F_PCT], ["Podiel miezd na tržbách", v.podiel(v.kat.mzdy || 0), F_PCT],
+    ["Hrubá marža", v.podiel(v.trzby - v.suroviny), F_PCT], ["Marža zisku", v.podiel(v.zisk), F_PCT],
+    ["Bod zvratu (potrebné tržby)", round2(v.bz), F_EUR], ["Bezpečnostná rezerva tržieb", v.rezerva, F_PCT],
+  ];
+  const ukStart = sum.length;
+  for (const [k, h] of uk) sum.push([k, h]);
+  const up = upozornenia(v);
+  if (up.length) { sum.push([], ["Upozornenia"]); for (const [, b, txt] of up) sum.push([`${b}: ${txt}`]); }
+  sum.push([], ["Všetky sumy sú bez DPH. Hárky s pohybmi obsahujú záznamy za zvolené obdobie, Sklad ukazuje aktuálny stav."]);
+  const ws1 = XLSX.utils.aoa_to_sheet(sum);
+  ws1["B3"].z = F_DAT;
+  for (let r = 5; r < 5 + vzsRows(v).length; r++) { const b = ws1["B" + (r + 1)], c = ws1["C" + (r + 1)]; if (b) b.z = F_EUR; if (c) c.z = F_PCT; }
+  uk.forEach(([, , f], i) => { const c = ws1["B" + (ukStart + i + 1)]; if (c) c.z = f; });
+  ws1["!cols"] = [{ wch: 44 }, { wch: 16 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "Súhrn");
+
+  // 2. Po mesiacoch
+  const mes = months(od, dok).map(([y, m]) => ({ y, m, v: analyzuj(mx(iso(y, m, 1), od), mn(eom(y, m), dok)) }));
+  XLSX.utils.book_append_sheet(wb, sheet([["Mesiac", "Tržby", "Suroviny", "Prevádzkové náklady", "Náklady spolu", "Zisk / strata", "Marža"],
+    ...mes.map(({ y, m, v }) => [`${MES[m - 1]} ${y}`, round2(v.trzby), round2(v.suroviny), round2(v.prev), round2(v.spolu), round2(v.zisk), v.podiel(v.zisk)])],
+    [null, F_EUR, F_EUR, F_EUR, F_EUR, F_EUR, F_PCT], [12, 14, 14, 20, 15, 15, 9]), "Po mesiacoch");
+
+  // 3. Faktúry
+  const fa = S.faktury.filter((f) => inP(f.datum_vystavenia)).sort((a, b) => a.datum_vystavenia.localeCompare(b.datum_vystavenia));
+  XLSX.utils.book_append_sheet(wb, sheet([["Číslo", "Dodávateľ", "IČO", "Vystavená", "Splatná", "Bez DPH", "DPH", "S DPH", "Uhradená", "Stav", "Príjemky spolu", "Rozdiel", "Mimo skladu"],
+    ...fa.map((f) => { const s = stavFaktury(f, t); const d = dm[f.dodavatel_id] || {};
+      return [f.cislo, d.nazov || "", d.ico || "", xDate(f.datum_vystavenia), xDate(f.datum_splatnosti), round2(f.suma_bez_dph), round2(f.dph || 0), round2(f.suma_bez_dph + (f.dph || 0)), xDate(f.datum_uhrady),
+        f.datum_uhrady ? "uhradená" : s.poSpl ? "po splatnosti" : "čaká na úhradu", s.maPrij ? round2(s.sumaPrij) : null, s.maPrij ? round2(s.rozdiel) : null, round2(f.ostatne || 0)]; })],
+    [null, null, null, F_DAT, F_DAT, F_EUR, F_EUR, F_EUR, F_DAT, null, F_EUR, F_EUR, F_EUR], [16, 26, 11, 11, 11, 13, 11, 13, 11, 15, 14, 11, 12]), "Faktúry");
+
+  // 4. Príjem surovín (po položkách)
+  const pr = [];
+  for (const p of S.prijemky.filter((p) => inP(p.datum)).sort((a, b) => a.datum.localeCompare(b.datum)))
+    for (const it of p.polozky || []) { const s = sm[it.surovina_id] || {};
+      pr.push([xDate(p.datum), dm[p.dodavatel_id]?.nazov || "", fm[p.faktura_id]?.cislo || "", s.nazov || "?", it.mnozstvo, s.jednotka || "", it.cena, round2(it.mnozstvo * it.cena), (it.dph ?? 20) / 100]); }
+  XLSX.utils.book_append_sheet(wb, sheet([["Dátum", "Dodávateľ", "Faktúra", "Surovina", "Množstvo", "Jednotka", "Cena/jedn. bez DPH", "Spolu bez DPH", "DPH"], ...pr],
+    [F_DAT, null, null, null, F_NUM, null, F_PRICE, F_EUR, "0%"], [11, 26, 16, 24, 11, 9, 18, 14, 6]), "Príjem surovín");
+
+  // 5. Tržby
+  const tz = S.trzby.filter((x) => inP(x.datum)).sort((a, b) => a.datum.localeCompare(b.datum));
+  XLSX.utils.book_append_sheet(wb, sheet([["Dátum", "Kanál", "Tržba bez DPH"], ...tz.map((x) => [xDate(x.datum), x.kanal, round2(x.suma)])],
+    [F_DAT, null, F_EUR], [11, 14, 15]), "Tržby");
+
+  // 6. Náklady (pravidelné rozpočítané na obdobie + jednorazové)
+  const nk = [];
+  for (const n of S.pravidelne) { const s = pravidelnyZaObdobie(n, od, dok); if (s > 0) nk.push(["pravidelný", null, n.nazov, KAT[n.kategoria]?.[0] || n.kategoria, TYP[n.typ], round2(n.mesacna_suma), round2(s)]); }
+  for (const n of S.naklady.filter((x) => inP(x.datum)).sort((a, b) => a.datum.localeCompare(b.datum))) nk.push(["jednorazový", xDate(n.datum), n.nazov, KAT[n.kategoria]?.[0] || n.kategoria, TYP[n.typ], null, round2(n.suma)]);
+  XLSX.utils.book_append_sheet(wb, sheet([["Druh", "Dátum", "Popis", "Kategória", "Typ", "Mesačne", "Za obdobie"], ...nk],
+    [null, F_DAT, null, null, null, F_EUR, F_EUR], [12, 11, 40, 30, 11, 12, 13]), "Náklady");
+
+  // 7. Sklad (aktuálny stav)
+  XLSX.utils.book_append_sheet(wb, sheet([["Surovina", "Jednotka", "Prijaté", "Spotrebované", "Zásoba", "Minimum", "Priem. cena", "Hodnota zásoby", "Stav"],
+    ...sklad().map((s) => [s.nazov, s.jednotka, s.prijate, s.spotreba, s.zasoba, s.min_zasoba || 0, s.cena, s.cena != null ? round2(Math.max(0, s.zasoba) * s.cena) : null, s.min_zasoba && s.zasoba < s.min_zasoba ? "objednať" : ""])],
+    [null, null, F_NUM, F_NUM, F_NUM, F_NUM, F_PRICE, F_EUR, null], [24, 9, 11, 13, 11, 10, 13, 15, 10]), "Sklad");
+
+  return { wb, od, dok };
+}
+$("btnExport").addEventListener("click", async () => {
+  const b = $("btnExport");
+  if (!downloads) return;
+  b.disabled = true; const label = b.textContent; b.textContent = "Pripravujem…";
+  try {
+    if (!window.XLSX) await new Promise((res, rej) => { const el = document.createElement("script"); el.src = XLSX_SRC; el.onload = res; el.onerror = () => rej({ code: "lib" }); document.head.appendChild(el); });
+    const { wb, od, dok } = buildWorkbook();
+    const data = XLSX.write(wb, { bookType: "xlsx", type: "array", compression: true });
+    await downloads.save({ filename: `pekaren_${od.slice(0, 7)}_${dok.slice(0, 7)}.xlsx`, data: new Blob([data]) });
+    toast("Excel je uložený.");
+  } catch (e) {
+    const c = e && e.code;
+    if (c === "declined") toast("Uloženie zrušené.");
+    else if (c === "lib") toast("Nepodarilo sa pripraviť Excel. Skontrolujte pripojenie a skúste znova.", true);
+    else if (c === "rate_limited") toast("Okno na uloženie je už otvorené.", true);
+    else if (["unavailable", "not_granted", "capability_disabled", "capability_removed", "extension_not_enabled"].includes(c)) { toast("Sťahovanie súborov tu nie je dostupné.", true); $("btnExport").hidden = true; }
+    else { console.error(e); toast("Export sa nepodaril. Skúste to znova.", true); }
+  } finally { b.disabled = false; b.textContent = label; }
+});
+(async () => {
+  try { downloads = window.claude ? await window.claude.use("downloads") : null; } catch { downloads = null; }
+  $("btnExport").hidden = !downloads;
+  document.querySelectorAll("[data-goexport]").forEach((b) => (b.hidden = !downloads));
+})();
 
 // ------------------------------------------------------------- vykreslenie
 let raf = 0;
