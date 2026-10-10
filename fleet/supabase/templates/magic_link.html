@@ -1,0 +1,11 @@
+<h2>Prihlásenie do Správy vozidiel</h2>
+<p>Kliknite na tlačidlo a budete prihlásený:</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email"
+     style="display:inline-block;padding:14px 24px;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold">
+    Prihlásiť sa
+  </a>
+</p>
+<p>Alebo zadajte v aplikácii tento kód:</p>
+<p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p>
+<p style="color:#666">Ak ste o prihlásenie nežiadali, tento e-mail ignorujte.</p>

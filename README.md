@@ -54,3 +54,9 @@ Kľúč sa ukladá len v tvojom prehliadači na tvojom počítači. **Nikomu ho 
 | „Prístup k mikrofónu bol zamietnutý“ | Klikni na ikonu vľavo od adresy → Mikrofón → Povoliť, potom obnov stránku. |
 | „Neplatný API kľúč“ | Skontroluj, či si skopíroval celý kľúč bez medzier. |
 | „Na účte nie je kredit“ | Dobi kredit v Anthropic Console → Billing. |
+
+---
+
+## 🚗 Správa vozidiel (nový projekt)
+
+V priečinku [`fleet/`](./fleet) je samostatná webová aplikácia na správu firemných áut. Návod na spustenie je v [`fleet/README.md`](./fleet/README.md).
