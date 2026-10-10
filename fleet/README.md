@@ -6,6 +6,8 @@ Webová aplikácia (PWA, mobile-first) na správu firemných áut. Zadanie a pra
 
 ## Čo už funguje
 
+Ukážky obrazoviek (vymyslené dáta): [`docs/screenshots/`](./docs/screenshots).
+
 - **Prihlásenie bez hesla** – e-mail s odkazom aj 6-miestnym kódom (kód sa hodí v appke nainštalovanej na ploche telefónu; odkaz funguje aj na inom zariadení, než kde ste o prihlásenie požiadali).
 - **Založenie firmy** – kto nemá pozvánku, môže založiť firmu a stane sa jej administrátorom.
 - **Pozvánky** – admin zadá e-mail a rolu (Administrátor / Správca / Vodič). Kolega dostane e-mail, prihlási sa a pridá sa k firme. Pozvánka platí 14 dní, dá sa poslať znova alebo zrušiť.
